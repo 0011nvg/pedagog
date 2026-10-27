@@ -1,0 +1,5 @@
+qa/
+node_modules/
+.openai/
+src/PEDAGOG_v2.html
+qa-preview/

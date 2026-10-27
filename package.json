@@ -1,0 +1,12 @@
+{
+  "name": "pedagog-platform",
+  "version": "3.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.cjs",
+    "test": "node tests/platform.test.cjs && node tests/engine.test.cjs && node tests/print.test.cjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
