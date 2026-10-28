@@ -13,3 +13,10 @@ for(const p of ['about','rules','methods','author'])assert(content[p].length>100
 assert(fs.readFileSync(path.join(root,'rules.html'),'utf8').includes('id="usage"'),'usage anchor');
 assert(fs.readFileSync(path.join(root,'print.html'),'utf8').includes('src="print-pack.js"'));
 console.log('PASS: 9 routes, local assets, unique anchors, metadata and 62 unchanged active card IDs, JS syntax.');
+
+// All navigation on a nested 404 must resolve from the Pages project root.
+const missing=fs.readFileSync(path.join(root,'404.html'),'utf8');
+for(const m of missing.matchAll(/(?:href|src)="([^"]+)"/g))assert(/^(#|https?:|\/pedagog\/)/.test(m[1]),'relative 404 link: '+m[1]);
+// Validate in-page destinations too, including cards rendered by JavaScript.
+for(const page of pages){const html=fs.readFileSync(path.join(root,page+'.html'),'utf8');for(const m of html.matchAll(/href="([^"#]*)#([^" ]+)"/g)){if(/^https?:/.test(m[1]))continue;const target=(m[1].split('?')[0]||page+'.html');const id=decodeURIComponent(m[2]);const content=fs.readFileSync(path.join(root,target),'utf8');assert(content.includes('id="'+id+'"')||(['library.html','cards.html'].includes(target)&&ids.includes(id)),page+': missing anchor '+target+'#'+id);}}
+console.log('Nested 404 navigation and all static cross-page anchors passed.');
