@@ -53,7 +53,7 @@
   function setRoles(s,index){const {team:t,situation:c}=current(s);if(!integer(index,0,c.roleSets.length-1))throw new Error('Недопустимый состав ролей.');t.roleSet=index;t.assignments=positions(c,index);if(t.size<t.assignments.length)t.discussion=true;if(t.turn&&!eligibleTurns(s).includes(t.turn))t.turn=null;}
   function setCase(s,id){const c=by('situations',id);if(!c)throw new Error('Ситуация отсутствует.');const {round,team:t}=current(s);round.teams[s.currentTeam]=team(c,t.number,t.size,s.settings.roleMode,Math.random);}
   function resource(s,id){const {team:t,situation:c}=current(s);if(!c.resourceIds.includes(id))throw new Error('Ресурс несовместим.');t.resource=id;t.turn=null;t.conditions.tool=false;t.conditions.condition=false;}
-  function eligibleTurns(s){const {team:t,situation:c,round:r}=current(s),f=t.conditions;if(!t.resource||!f.consent||!f.time||r.stage<5)return [];
+  function eligibleTurns(s){const {team:t,situation:c,round:r}=current(s),f=t.conditions;if(s.settings.duration<=20||!t.resource||!f.consent||!f.time||r.stage<6)return [];
     return c.turnIds.filter(id=>{
       if(id==='К-02'&&(!f.swap||t.discussion||t.size<t.assignments.length))return false;
       if(id==='К-03'&&!f.written)return false;
@@ -65,9 +65,10 @@
   }
   function turn(s,id){if(!eligibleTurns(s).includes(id))throw new Error('Условия поворота не выполнены.');current(s).team.turn=id;}
   function nextRound(s,caseId,rng=Math.random){const c=by('situations',caseId);if(!c)throw new Error('Неизвестная ситуация.');if(s.rounds.length>=20)throw new Error('Не более 20 раундов в одной сессии.');const plan=budget(s.settings.duration/s.plannedRounds);s.rounds.forEach(r=>r.running=false);s.rounds.push({number:s.rounds.length+1,stage:0,remaining:plan[0],running:false,plan,teams:s.rounds[0].teams.map(t=>team(c,t.number,t.size,s.settings.roleMode,rng))});s.currentRound=s.rounds.length-1;s.currentTeam=0;s.completed=false;}
-  function move(s,index){if(!integer(index,0,STAGES.length-1))throw new Error('Неверный этап.');const r=current(s).round;r.stage=index;r.remaining=r.plan[index];r.running=false;}
+  function move(s,index){if(!integer(index,0,STAGES.length-1))throw new Error('Неверный этап.');const r=current(s).round;if(index>=5&&r.teams.some(t=>!t.resource))throw new Error('Сначала выберите ресурс для каждой команды: переключайте команды сверху.');r.stage=index;r.remaining=r.plan[index];r.running=false;}
   function stageCopy(s){const {round:r,team:t,situation:c}=current(s);let [key,title,prompt]=STAGES[r.stage];
     if(t.discussion){if(key==='first'){title='Первый вариант решения';prompt='Совет коллег: рассмотрите интересы всех персонажей и сформулируйте первый вариант решения. Инсценировка не проводится.';}if(key==='retry'){title='Пересмотр решения';prompt='Совет коллег: примените выбранный ресурс к первоначальному решению. Сравните два варианта и условия их применения.';}}
+    if(s.settings.duration<=20&&key==='consequence')prompt='Сравните возможные последствия двух решений. В мини-сессии дополнительный поворот не используется: оставьте время на выводы и рефлексию.';
     if(c.id==='С-17'&&['prepare','observe','consequence'].includes(key))prompt+=' Только совет коллег; состояние человека не разыгрывается.';
     return {key,title,prompt};
   }
@@ -77,7 +78,7 @@
     if(!['host','participant'].includes(s.view)||typeof s.completed!=='boolean'||!text(s.started)||!Number.isFinite(Date.parse(s.started))||![1,2].includes(s.plannedRounds)||!Array.isArray(s.rounds)||!integer(s.rounds.length,1,20)||!integer(s.currentRound,0,s.rounds.length-1)||!integer(s.currentTeam,0,s.settings.teams-1))return false;
     return s.rounds.every((r,ri)=>r&&r.number===ri+1&&integer(r.stage,0,9)&&Number.isFinite(r.remaining)&&r.remaining>=0&&r.remaining<=86400&&typeof r.running==='boolean'&&Array.isArray(r.plan)&&r.plan.length===10&&r.plan.every(v=>integer(v,1,7200))&&Array.isArray(r.teams)&&r.teams.length===s.settings.teams&&r.teams.reduce((n,t)=>n+(t?.size||0),0)===s.settings.people&&r.teams.every((t,ti)=>{
       const c=t&&by('situations',t.caseId);if(!c||t.number!==ti+1||!integer(t.size,1,40)||!integer(t.roleSet,0,c.roleSets.length-1)||JSON.stringify(t.assignments)!==JSON.stringify(positions(c,t.roleSet))||typeof t.discussion!=='boolean'||((c.id==='С-17'||t.size<t.assignments.length)&&!t.discussion)||!(t.resource===null||c.resourceIds.includes(t.resource))||!(t.turn===null||c.turnIds.includes(t.turn))||!t.notes||!['first','observed','retry','consequences','decision','reflection'].every(k=>text(t.notes[k]))||!t.conditions||!['consent','time','swap','written','condition','tool','volunteer'].every(k=>typeof t.conditions[k]==='boolean'))return false;
-      if(t.turn){const probe=copy(s);probe.currentRound=ri;probe.currentTeam=ti;probe.rounds[ri].stage=6;if(!eligibleTurns(probe).includes(t.turn))return false;}return true;
+      if(t.turn){const probe=copy(s);probe.currentRound=ri;probe.currentTeam=ti;probe.rounds[ri].stage=6;probe.settings.duration=60;/* Preserve turns in historical mini-session saves; new mini-session turns stay disabled. */if(!eligibleTurns(probe).includes(t.turn))return false;}return true;
     }));
   }
   function restore(raw){if(typeof raw!=='string'||raw.length>4000000)throw new Error('Файл слишком большой или повреждён.');const s=JSON.parse(raw);if(!validate(s))throw new Error('Файл не соответствует текущей версии игры.');s.rounds.forEach(r=>r.running=false);return s;}
