@@ -286,7 +286,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}
 /* ---------- Каталог ситуаций ---------- */
 .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:26px}
 .filters input[type=search]{flex:1 1 260px;border-radius:var(--pill);padding-left:20px}
-.filters select{width:auto;border-radius:var(--pill);padding-right:36px}
+.filters select{width:auto;max-width:100%;min-width:0;border-radius:var(--pill);padding-right:36px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1.5px solid var(--rule);background:var(--paper);border-radius:var(--pill);padding:8px 14px;font:600 14px var(--text);color:var(--ink-2);cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
@@ -524,3 +524,4 @@ body.participant .feed .situation-card p{font-size:clamp(17px,1.4vw,21px)}
 .options{margin:0 0 10px;padding-left:22px;display:grid;gap:10px}
 .options li{line-height:1.5}
 .options .muted{display:block;margin-top:2px;font-size:14px}
+@media (max-width:380px){.btn,.button{white-space:normal;text-align:center;line-height:1.2;padding:10px 18px;height:auto}}

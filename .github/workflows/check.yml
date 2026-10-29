@@ -1,7 +1,7 @@
 name: Platform checks
 on:
   push:
-    branches: [main, feat/professional-platform]
+    branches: [main]
   pull_request:
 permissions:
   contents: read
