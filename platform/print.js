@@ -29,7 +29,7 @@ app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebr
     <div class="grid two" style="gap:10px"><div class="field"><label for="printCopies">Экземпляров</label><input id="printCopies" type="number" min="1" max="10" value="1"></div><div class="field"><label for="printObs">Наблюдателей</label><input id="printObs" type="number" min="0" max="4" value="1"></div></div>
     <div class="grid two" style="gap:10px"><div class="field"><label for="printDx">Сдвиг оборота X, мм</label><input id="printDx" type="number" min="-3" max="3" step="0.5" value="0"></div><div class="field"><label for="printDy">Сдвиг Y, мм</label><input id="printDy" type="number" min="-3" max="3" step="0.5" value="0"></div></div>
     <label class="check"><input type="checkbox" id="printEco"> Экономная печать: без цветных заливок</label>
-    <p class="small muted" style="margin:0">Печатайте в масштабе 100 % («Фактический размер»). Сначала — пробный лист: номера на обороте должны совпасть с лицевой стороной на просвет. Если не совпали, задайте сдвиг.</p>
+    <p class="small muted" style="margin:0">Печатайте в масштабе 100 % («Фактический размер»). Сначала — пробный лист: номера на обороте должны совпасть с лицевой стороной на просвет. Если не совпали, задайте сдвиг. Рубашки цветные: если в окне печати есть пункт «Фоновые изображения» или «Печатать фон», включите его; для печати без заливок — «Экономная печать».</p>
     <button class="btn" type="button" id="printCalibration">Пробный лист</button>
     <button class="btn primary" type="button" id="printPrepare">Сформировать комплект</button>
     <button class="btn" type="button" id="printWorksheets">Листы ведущего A4</button>

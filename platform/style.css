@@ -250,7 +250,10 @@ main{display:block}
 .page-hero .lead{color:#DCDEF4}
 .page-hero.teal .lead{color:#E3F4F2}
 .page-hero .eyebrow{color:var(--aqua)}.page-hero.teal .eyebrow{color:#D5F1EE}
-.page-hero .hero-deco{position:absolute;right:0;bottom:-20px;width:min(520px,44vw);opacity:.9;pointer-events:none}
+.page-hero .hero-deco{position:absolute;right:max(16px,calc((100vw - 1280px) / 2));bottom:0;width:clamp(320px,30vw,440px);pointer-events:none;z-index:0}
+.page-hero>.wrap{position:relative;z-index:1}
+@media (max-width:1180px){.page-hero .hero-deco{display:none}}
+@media (min-width:1181px){.page-hero .lead{max-width:min(62ch,calc(100% - 460px))}}
 .situation-card .badge{box-shadow:0 0 0 2px rgba(255,255,255,.9)}
 .subnav{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
 .subnav a{color:#fff;text-decoration:none;font-weight:600;font-size:14.5px;padding:8px 16px;border:1.5px solid rgba(255,255,255,.4);border-radius:var(--pill)}
@@ -594,3 +597,12 @@ body.participant .feed .situation-card p{font-size:clamp(17px,1.4vw,21px)}
 .author-close .principle{overflow-wrap:break-word;hyphens:manual}
 @media (max-width:640px){.author-close .btn{white-space:normal;text-align:center;line-height:1.25;padding:12px 20px;height:auto}.author-name{font-size:clamp(30px,9vw,40px)}.timeline li{grid-template-columns:48px 1fr;gap:10px}}
 .author-review .section-head h2{font-size:clamp(21px,6.2vw,44px)}
+
+/* Об авторе: спокойная структура — заголовок слева, короткий список справа */
+.author-intro{display:block;max-width:820px}
+.author-intro .lead{margin-top:6px}
+.author-block{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:clamp(16px,4vw,56px);padding-top:clamp(22px,3vw,34px);border-top:1px solid var(--rule)}
+.author-block h2{margin:0;font-size:clamp(20px,2vw,26px);text-transform:none;letter-spacing:0}
+.author-block .timeline b{color:var(--ink)}
+@media (max-width:760px){.author-block{grid-template-columns:1fr}}
+@media (max-width:640px){.author-page .actions .btn{white-space:normal;text-align:center;line-height:1.25;padding:12px 20px;height:auto}}
