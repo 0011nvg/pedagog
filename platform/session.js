@@ -35,7 +35,7 @@ function renderSetup(){
   const c=E.by('situations',setup.caseId),teams=E.teamsFor(setup.people);
   const cases=D.situations.filter(x=>!setup.theme||x.theme===setup.theme);
   const themes=[...new Set(D.situations.map(x=>x.theme))];
-  app.innerHTML=`<section class="page-hero" style="padding-bottom:clamp(40px,5vw,64px)"><div class="wrap"><p class="eyebrow">Онлайн-игра</p><h1><span class="dim">Подготовка</span> встречи</h1><p class="lead">Три шага: время, число участников и ситуация. Дальше сайт распределит роли и поведёт по этапам — новые обстоятельства откроются в нужный момент.</p></div><div class="hero-deco">${A.pageDeco(E.castOrder(c).slice(0,3).map(x=>x.type))}</div></section>
+  app.innerHTML=`<section class="page-hero" style="padding-bottom:clamp(40px,5vw,64px)"><div class="wrap"><p class="eyebrow">Онлайн-игра</p><h1><span class="dim">Подготовка</span> встречи</h1><p class="lead">Три шага: время, число участников и ситуация. Дальше сайт распределит роли и поведёт по этапам — новые обстоятельства откроются в нужный момент.</p></div><div class="hero-deco">${A.pageDeco(23)}</div></section>
   <div class="wrap game-shell">
   ${warning?`<p class="note-card" role="alert">${esc(warning)}</p>`:''}
   <form class="setup" id="setup-form" novalidate><div class="panel">
@@ -179,7 +179,7 @@ function summaryText(){const L=[];L.push('ПЕДАГОГ · итоги встр�
   L.push('','Записи без имён и узнаваемых подробностей. Игра не используется для оценки сотрудников.');return L.join('\n');}
 function renderSummary(){document.body.classList.remove('participant');
   app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Встреча завершена</p><h1><span class="dim">Итоги</span> встречи</h1><p class="lead">Решения команд и общий вывод. Личные шаги остаются у участников. Скачайте итоги — в браузере они хранятся только до новой встречи.</p>
-  <div class="actions"><button class="btn white" id="dl-txt">Скачать итоги (.txt)</button><button class="btn ghost-light" id="print-sum">Распечатать</button></div></div><div class="hero-deco">${A.pageDeco(['Ро-06','Ро-04','Ро-01'])}</div></section>
+  <div class="actions"><button class="btn white" id="dl-txt">Скачать итоги (.txt)</button><button class="btn ghost-light" id="print-sum">Распечатать</button></div></div><div class="hero-deco">${A.pageDeco(53)}</div></section>
   <section class="page-body"><div class="wrap">${state.rounds.map(r=>r.teams.map(t=>{const c=E.by('situations',t.caseId);return `<article class="panel summary-team"><p class="eyebrow">Раунд ${r.number}${r.teams.length>1?' · команда '+t.number:''}</p><h2 style="font-size:28px">${esc(c.title)}</h2>
    <dl>${t.resource?`<dt>Ресурс</dt><dd>${esc(E.by('resources',t.resource).title)}</dd>`:''}${E.NOTE_KEYS.map(k=>t.notes[k].trim()?`<dt>${esc(E.NOTE_LABELS[k])}</dt><dd>${esc(t.notes[k])}</dd>`:'').join('')||'<dt>Записи</dt><dd class="muted">Команда ничего не записала — это допустимо.</dd>'}</dl></article>`;}).join('')).join('')}
    ${state.meeting.trim()?`<article class="panel summary-team"><p class="eyebrow">Общий итог</p><dl><dt>Итог встречи</dt><dd>${esc(state.meeting)}</dd></dl></article>`:''}

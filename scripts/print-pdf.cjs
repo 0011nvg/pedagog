@@ -27,7 +27,7 @@ const doc=body=>`<!doctype html><html lang="ru"><head><meta charset="utf-8"><sty
     const n=await page.locator('.pc-sheet,.pc-a4').count();for(let i=0;i<n;i++)await page.locator('.pc-sheet,.pc-a4').nth(i).screenshot({path:path.join(out,'png',`page-${String(i+1).padStart(2,'0')}.png`)});}
   /* Проверка переполнения: содержимое лицевых сторон должно помещаться в карточку. */
   await show(L.sheetsHTML(allCards,{edge:'long'}));await page.evaluate(()=>document.fonts.ready);
-  const overflow=await page.evaluate(()=>[...document.querySelectorAll('.pc-sheet .pc-body')].filter(e=>e.scrollHeight>e.clientHeight+1).map(e=>e.closest('.pc-card').querySelector('.pc-head span').textContent+' / '+e.closest('.pc-card').querySelector('.pc-head b').textContent));
+  const overflow=await page.evaluate(()=>[...document.querySelectorAll('.pc-sheet .pc-body, .pc-sheet .pc-back-text, .pc-sheet .pc-back-title')].filter(e=>e.scrollHeight>e.clientHeight+1||e.scrollWidth>e.clientWidth+1).map(e=>{const c=e.closest('.pc-card');const h=c.querySelector('.pc-head span,.pc-back-top span:last-child'),k=c.querySelector('.pc-head b,.pc-back-label');return (h?h.textContent:'?')+' / '+(k?k.textContent:'?')+(c.querySelector('.pc-back')?' (рубашка)':'');}));
   const sheets=L.plan(allCards).length/2;
   fs.writeFileSync(path.join(out,'report.json'),JSON.stringify({deck:D.version,situations:D.situations.length,cards:allCards.length,sheetsDuplex:sheets,overflow,files:made.map(f=>path.relative(out,f))},null,1));
   console.log(`PDF: ${made.length} файлов, ${allCards.length} карточек, ${sheets} листов A4 (двусторонних). Переполнение: ${overflow.length?overflow.join('; '):'нет'}.`);

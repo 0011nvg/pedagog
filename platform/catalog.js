@@ -20,7 +20,7 @@ function passport(c){
   document.title=c.title+' — ПЕДАГОГ';
   app.innerHTML=`<section class="page-hero"><div class="wrap"><p class="eyebrow">${esc(c.id)} · ${esc(c.theme)} · ${esc(c.level)} уровень</p><h1>${esc(c.title)}</h1><p class="lead">${esc(c.grade)} · ${c.cast.length} ролей · 3 обстоятельства</p>
   <div class="actions"><a class="btn white" href="game.html?duration=40&amp;case=${encodeURIComponent(c.id)}">Играть 40 минут</a><a class="btn ghost-light" href="game.html?duration=15&amp;case=${encodeURIComponent(c.id)}">15 минут</a><a class="btn ghost-light" href="print.html?case=${encodeURIComponent(c.id)}">Печатный комплект</a></div>
-  <nav class="subnav"><a href="library.html">← Все ситуации</a></nav></div><div class="hero-deco">${A.pageDeco(E.castOrder(c).slice(0,3).map(x=>x.type))}</div></section>
+  <nav class="subnav"><a href="library.html">← Все ситуации</a></nav></div><div class="hero-deco">${A.pageDeco(31)}</div></section>
   <section class="page-body"><div class="wrap passport">
    <div style="display:grid;gap:22px">
     <h2 style="font-size:28px;margin:0">Первые роли</h2>
@@ -43,7 +43,7 @@ function passport(c){
 function list(){
   const q=new URLSearchParams(location.search);
   const st={theme:q.get('theme')||'',level:'',role:'',text:''};
-  app.innerHTML=`<section class="page-hero"><div class="wrap"><p class="eyebrow">Библиотека</p><h1><span class="dim">${D.situations.length} ситуаций</span> из школьной жизни</h1><p class="lead">В каждой — пять или шесть ролей, которые входят в разговор постепенно, три обстоятельства, меняющие картину, и несколько возможных подходов к решению. Откройте паспорт, чтобы подготовиться, или сразу начните игру.</p>${sub}</div><div class="hero-deco">${A.pageDeco()}</div></section>
+  app.innerHTML=`<section class="page-hero"><div class="wrap"><p class="eyebrow">Библиотека</p><h1><span class="dim">${D.situations.length} ситуаций</span> из школьной жизни</h1><p class="lead">В каждой — пять или шесть ролей, которые входят в разговор постепенно, три обстоятельства, меняющие картину, и несколько возможных подходов к решению. Откройте паспорт, чтобы подготовиться, или сразу начните игру.</p>${sub}</div><div class="hero-deco">${A.pageDeco(17)}</div></section>
   <section class="page-body"><div class="wrap">
    <div class="filters"><input type="search" id="q" placeholder="Поиск: отметка, чат, опоздания, форма…" aria-label="Поиск по ситуациям">
     <select id="lvl" aria-label="Уровень"><option value="">Любой уровень</option>${M.levels.map(l=>`<option>${l}</option>`).join('')}</select>
@@ -62,7 +62,7 @@ function list(){
 
 function cards(){
   const usage=id=>D.situations.filter(c=>c.cast.some(x=>x.type===id)).length;
-  app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Справочник</p><h1><span class="dim">Роли,</span> ресурсы и рефлексия</h1><p class="lead">Одиннадцать допустимых ролей, карточка наблюдателя, пятнадцать ресурсов для поиска решения и десять вопросов рефлексии — общие для онлайн-игры и печатного комплекта.</p>${sub}</div><div class="hero-deco">${A.pageDeco(['Ро-06','Ро-07','Ро-11'])}</div></section>
+  app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Справочник</p><h1><span class="dim">Роли,</span> ресурсы и рефлексия</h1><p class="lead">Одиннадцать допустимых ролей, карточка наблюдателя, пятнадцать ресурсов для поиска решения и десять вопросов рефлексии — общие для онлайн-игры и печатного комплекта.</p>${sub}</div><div class="hero-deco">${A.pageDeco(53)}</div></section>
   <section class="page-body"><div class="wrap">
    <div class="section-head"><p class="eyebrow">Роли</p><h2>Кто участвует в ситуациях</h2><p class="lead">В каждой ситуации — 5–6 ролей из этого списка. Тьютор, представитель родительского сообщества и педагог дополнительного образования в игру не входят. Медиатор появляется только там, где его участие обосновано.</p></div>
    <div class="grid two">${D.roleTypes.map(t=>`<article class="role-card" id="${t.id}" style="--c:${t.color}"><header>${A.badge(t.id,'lg')}<div><b>${esc(t.title)}</b><small>${t.id} · в ${usage(t.id)} ситуациях</small></div></header><p style="margin:0">${esc(t.text)}</p></article>`).join('')}

@@ -57,19 +57,18 @@
 .pc-checks li{display:flex;gap:2mm;align-items:flex-start}
 .pc-checks li::before{content:"";margin-top:.5mm;width:3.2mm;height:3.2mm;border:.35mm solid #6874C2;border-radius:.8mm;flex:0 0 auto}
 
-/* Рубашка: цвет лицевой стороны, эмблема школы белым контуром, звёзды */
+/* Рубашка: цвет лицевой стороны, звёзды, крупная типографика */
 .pc-back{height:100%;padding:0}
-.pc-back-frame{position:relative;height:100%;background:var(--a);color:var(--fg);display:flex;flex-direction:column;align-items:stretch;padding:5.2mm 6mm 5.4mm;overflow:hidden}
-.pc-back-frame::before{content:"";position:absolute;inset:3.2mm;border:.3mm solid currentColor;border-radius:2.2mm;opacity:.38;pointer-events:none}
+.pc-back-frame{position:relative;height:100%;background:var(--a);color:var(--fg);display:flex;flex-direction:column;align-items:stretch;padding:5.4mm 6mm 5.4mm;overflow:hidden}
+.pc-stars{position:absolute;inset:0;width:100%;height:100%;color:var(--fg);pointer-events:none}
 .pc-back-top{position:relative;margin:0;display:flex;justify-content:space-between;font:800 7.6pt/1 'Montserrat',sans-serif;letter-spacing:.18em}
 .pc-back-top span:last-child{letter-spacing:.06em;opacity:.85}
-.pc-back-art{flex:1 1 auto;display:flex;align-items:center;justify-content:center}
-.pc-emblem{display:block;width:46mm;height:auto;color:currentColor}
-.pc-back-text{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;gap:1.8mm;margin-bottom:6mm}
-.pc-back-label{margin:0;font:800 8.4pt/1.1 'Montserrat',sans-serif;letter-spacing:.22em;text-transform:uppercase;opacity:.82}
-.pc-back-title{margin:0;font:800 15pt/1.14 'Montserrat',sans-serif;max-width:76mm}
-.pc-back-sub{margin:0;font-size:8.8pt;font-weight:600;line-height:1.35;max-width:76mm;opacity:.92}
-.pc-back-foot{position:relative;margin:0;text-align:center;font:600 6.8pt/1 'Onest',sans-serif;letter-spacing:.16em;text-transform:uppercase;opacity:.72}
+.pc-back-text{position:relative;flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:2.6mm;padding:0 2mm}
+.pc-back-label{margin:0;font:800 9.6pt/1.1 'Montserrat',sans-serif;letter-spacing:.28em;text-transform:uppercase;opacity:.85}
+.pc-back-label::after{content:"";display:block;width:12mm;height:.45mm;margin:2.6mm auto 0;background:currentColor;opacity:.55;border-radius:.3mm}
+.pc-back-title{margin:0;font:800 18pt/1.12 'Montserrat',sans-serif;max-width:80mm;overflow-wrap:break-word;hyphens:manual}
+.pc-back-sub{margin:0;font-size:9pt;font-weight:600;line-height:1.35;max-width:78mm;opacity:.92}
+.pc-back-foot{position:relative;margin:0;text-align:center;font:600 6.8pt/1 'Onest',sans-serif;letter-spacing:.16em;text-transform:uppercase;opacity:.75}
 
 /* Экономичная печать: без заливок, только контуры */
 .eco .pc-head{background:#fff;color:var(--k);border:.4mm solid var(--k);border-bottom-width:.9mm}

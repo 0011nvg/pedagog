@@ -107,30 +107,21 @@ function screenArt(){return `<svg viewBox="0 0 300 220" aria-hidden="true"><rect
 function cardsArt(){const c=(x,y,r,id,title)=>{const t=T(id);return `<g transform="translate(${x} ${y}) rotate(${r})"><rect width="120" height="168" rx="12" fill="#fff"/><rect width="120" height="34" rx="12" fill="${t.color}"/><rect y="22" width="120" height="12" fill="${t.color}"/><circle cx="24" cy="17" r="10" fill="#fff"/><circle cx="24" cy="17" r="4" fill="${t.color}"/><rect x="14" y="50" width="76" height="8" rx="4" fill="#1A1F45"/><rect x="14" y="68" width="92" height="5" rx="2.5" fill="#C9CCEB"/><rect x="14" y="80" width="84" height="5" rx="2.5" fill="#C9CCEB"/><rect x="14" y="92" width="88" height="5" rx="2.5" fill="#C9CCEB"/><rect x="14" y="128" width="92" height="26" rx="8" fill="#EEEFF8"/></g>`;};
   return `<svg viewBox="0 0 320 240" aria-hidden="true">${c(40,60,-14,'Ро-05')}${c(110,40,-2,'Ро-04')}${c(180,50,12,'Ро-01')}</svg>`;}
 
-/* Декор для внутренних страниц: силуэт школы белыми линиями на тонкой линии горизонта, мягкое свечение
-   и несколько мерцающих звёзд. Без кругов и обрезанных дорог; показывается только на широких экранах. */
-function pageDeco(){const W='rgba(255,255,255,.92)';
-  const win=(x,y,lit,w=11,h=12)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.6" fill="${lit?'#FFD98A':'rgba(255,255,255,.16)'}" stroke="${W}" stroke-width="1"/>`;
-  const wins=[];[[176,0],[194,1],[296,1],[314,0]].forEach(([x,l])=>[118,140].forEach((y,j)=>wins.push(win(x,y,l&&j===0))));
-  [[146,0],[346,1]].forEach(([x,l])=>wins.push(win(x,136,l,10,11)));
-  return `<svg viewBox="0 0 440 230" aria-hidden="true" focusable="false">
-  <defs><radialGradient id="decoGlow" cx="50%" cy="60%" r="50%"><stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
-   <linearGradient id="decoHorizon" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".25" stop-color="#fff" stop-opacity=".6"/><stop offset=".8" stop-color="#fff" stop-opacity=".6"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
-  <ellipse cx="250" cy="140" rx="200" ry="110" fill="url(#decoGlow)"/>
-  <g fill="rgba(255,255,255,.07)" stroke="${W}" stroke-width="1.4" stroke-linejoin="round">
-   <rect x="138" y="128" width="32" height="44"/><rect x="340" y="128" width="32" height="44"/>
-   <rect x="168" y="106" width="174" height="66"/><rect x="230" y="80" width="50" height="92" fill="rgba(255,255,255,.12)"/>
-  </g>
-  <path d="M164 106H346M226 80H284M134 128H174M336 128H376" stroke="${W}" stroke-width="2.4" stroke-linecap="round"/>
-  ${wins.join('')}
-  <rect x="236" y="88" width="38" height="12" rx="2.5" fill="${W}"/><text x="255" y="97.2" text-anchor="middle" font-family="Montserrat,Onest,sans-serif" font-weight="800" font-size="7.4" letter-spacing=".8" fill="#3B4A99">ШКОЛА</text>
-  ${win(240,108,1,30,12)}
-  <rect x="245" y="146" width="20" height="26" rx="2" fill="#FFD98A" stroke="${W}" stroke-width="1"/><path d="M255 147V171" stroke="#C9A24E" stroke-width="1"/>
-  <path d="M40 172H420" stroke="url(#decoHorizon)" stroke-width="1.4"/>
-  ${star(96,64,9,'#fff','twinkle')}${star(372,40,6,'rgba(255,255,255,.85)','twinkle').replace('<path ','<path style="animation-delay:1.4s;animation-duration:4.2s" ')}${star(408,104,4.5,'rgba(255,255,255,.7)','twinkle').replace('<path ','<path style="animation-delay:2.3s" ')}${star(150,34,4,'rgba(255,255,255,.6)','twinkle').replace('<path ','<path style="animation-delay:.7s;animation-duration:5s" ')}
-  </svg>`;}
+/* Фон внутренних страниц: звёздное небо поверх синей подложки — много мелких звёзд, немного средних и несколько
+   крупных, белые и мягкие жёлтые, мягкое медленное мерцание. Без зданий, кругов и ореолов. Слева, где текст,
+   звёзды реже и тусклее. Расположение псевдослучайное, но одинаковое при каждой сборке. */
+function starfield(seed=7,{w=1440,h=560,count=380}={}){let x=seed>>>0||1;const rnd=()=>(x=(x*1664525+1013904223)>>>0)/4294967296;
+  const out=[],cols=['#FFFFFF','#FFFFFF','#FFFFFF','#FFF4CC','#FFE7A3'];
+  for(let i=0;i<count;i++){const px=rnd()*w,py=rnd()*h,left=px<w*.74,r=rnd(),c=cols[Math.floor(rnd()*cols.length)];
+    const dur=(6+rnd()*5).toFixed(1),dl=(rnd()*8).toFixed(1),op=(left?.78:.9)*(0.65+rnd()*0.35);
+    if(left&&rnd()<.25)continue;
+    if(r<.7||left){out.push(`<circle class="tw" style="animation-duration:${dur}s;animation-delay:-${dl}s" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(left?1+rnd()*0.8:0.9+rnd()*1.3).toFixed(2)}" fill="${c}" fill-opacity="${op.toFixed(2)}"/>`);}
+    else{const big=r>.94&&!left,sz=big?7.5+rnd()*3.5:3.2+rnd()*3;
+      out.push(star(+px.toFixed(1),+py.toFixed(1),+sz.toFixed(1),c,'tw').replace('<path ',`<path ${big?'filter="url(#sfGlow)" ':''}fill-opacity="${Math.min(1,op+.15).toFixed(2)}" style="animation-duration:${dur}s;animation-delay:-${dl}s" `));}}
+  return `<svg class="starfield" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><defs><filter id="sfGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="2.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>${out.join('')}</svg>`;}
+function pageDeco(seed=7){return starfield(seed);}
 
 function badge(typeId,cls=''){const t=T(typeId);return `<span class="badge ${cls}" style="--c:${t.color};--i:${t.ink}" title="${t.title}">${t.abbr}</span>`;}
 
-root.PEDAGOG_ART={mark,pin,marker,school,star,heroScene,ribbons,ridge,screenArt,cardsArt,pageDeco,badge};
+root.PEDAGOG_ART={mark,pin,marker,school,star,starfield,heroScene,ribbons,ridge,screenArt,cardsArt,pageDeco,badge};
 })(globalThis);
