@@ -1,64 +1,82 @@
 'use strict';
+/* Движок сессии: форматы, этапы, роли, ресурсы, сохранение и импорт. */
 const assert=require('node:assert/strict');
-require('../src/deck.js');
-const E=require('../platform/engine.js');
-const D=globalThis.PEDAGOG_DATA;
-const settings=(overrides={})=>({people:6,teams:1,duration:60,caseId:'С-03',roleMode:'random',resourceMode:'choice',facilitator:true,...overrides});
-let tests=0;function test(name,fn){fn();tests++;console.log('✓ '+name);}
-test('all cases, formats, team counts and roster sizes preserve compatibility',()=>{
- for(const c of D.situations)for(const duration of E.DURATIONS)for(const people of [1,4,6,12,40])for(const teams of [1,Math.min(4,people)]){
-  const s=E.create(settings({caseId:c.id,duration,people,teams}));assert(E.validate(s));const r=s.rounds[0];assert.equal(r.teams.reduce((n,t)=>n+t.size,0),people);assert.equal(r.plan.reduce((a,b)=>a+b,0)*s.plannedRounds,duration*60);
-  for(const t of r.teams)assert(c.roleSets.some(ids=>JSON.stringify(ids)===JSON.stringify(t.assignments.map(a=>a.roleId))));
- }
-});
-test('individual mode and С-17 never instruct an enactment',()=>{
- for(const id of ['С-01','С-17']){const s=E.create(settings({caseId:id,people:id==='С-17'?6:1}));for(const stage of [2,5]){E.resource(s,E.current(s).situation.resourceIds[0]);E.move(s,stage);assert.match(E.stageCopy(s).prompt,/Совет коллег/);assert(!E.stageCopy(s).title.includes('попытка'));}}
- const s=E.create(settings({caseId:'С-17'}));s.rounds[0].teams[0].discussion=false;assert.equal(E.validate(s),false);
-});
-test('duplicate role IDs retain distinct situational positions',()=>{
- const c=E.by('situations','С-14'),p=E.positions(c);assert.equal(p[1].roleId,p[2].roleId);assert.notEqual(p[1].position,p[2].position);
- for(const id of ['С-03','С-20']){const c=E.by('situations',id),p=E.positions(c,2);assert.equal(p[0].roleId,p[1].roleId);assert.notEqual(p[0].position,p[1].position);}
-});
-test('two rounds preserve independent notes/resources and repeat case cleanly',()=>{
- const s=E.create(settings({duration:90,teams:2,people:8}));const t=E.current(s).team;t.notes.first='Первый вариант';E.resource(s,'Р-02');s.currentTeam=1;E.resource(s,'Р-02');s.currentTeam=0;E.move(s,6);E.nextRound(s,'С-03');assert.equal(s.rounds[0].teams[0].notes.first,'Первый вариант');assert.equal(s.rounds[0].teams[0].resource,'Р-02');assert.equal(E.current(s).team.resource,null);assert.equal(E.current(s).team.notes.first,'');s.currentRound=0;assert.equal(E.current(s).team.notes.first,'Первый вариант');assert(E.validate(s));
-});
-test('team changes do not erase another team’s work',()=>{const s=E.create(settings({teams:2}));E.current(s).team.notes.decision='Согласовано';s.currentTeam=1;E.setCase(s,'С-04');assert.equal(s.rounds[0].teams[0].notes.decision,'Согласовано');assert.equal(E.current(s).team.caseId,'С-04');assert(E.validate(s));});
-test('turns enforce conditions including tools, voluntary actor, accessibility and time',()=>{
- const s=E.create(settings({caseId:'С-04'}));E.resource(s,'Р-06');E.move(s,6);assert.deepEqual(E.eligibleTurns(s),[]);const f=E.current(s).team.conditions;f.consent=f.time=true;assert(!E.eligibleTurns(s).includes('К-06'));f.tool=true;assert(E.eligibleTurns(s).includes('К-06'));E.turn(s,'К-06');assert(E.validate(s));f.tool=false;assert(!E.validate(s));assert.throws(()=>E.turn(s,'К-06'));
- const q=E.create(settings({caseId:'С-03',people:2}));E.resource(q,'Р-02');E.move(q,6);Object.assign(E.current(q).team.conditions,{consent:true,time:true,volunteer:true});assert(!E.eligibleTurns(q).includes('К-07'));
- const u=E.create(settings({caseId:'С-03',people:6}));E.resource(u,'Р-02');E.move(u,6);Object.assign(E.current(u).team.conditions,{consent:true,time:true,volunteer:true,condition:true});assert(E.eligibleTurns(u).includes('К-07'));assert(E.eligibleTurns(u).includes('К-05'));
-});
-test('resources cannot escape the situation matrix',()=>{const s=E.create(settings({caseId:'С-01'}));assert.throws(()=>E.resource(s,'Р-15'));assert.throws(()=>E.turn(s,'К-07'));});
-test('reload pauses the clock and preserves notes and current stage',()=>{const s=E.create(settings());E.resource(s,E.current(s).situation.resourceIds[0]);E.move(s,5);E.current(s).round.running=true;E.current(s).round.remaining=47.5;E.current(s).team.notes.retry='Новый вопрос';const r=E.restore(JSON.stringify(s));assert.equal(E.current(r).round.running,false);assert.equal(E.current(r).round.remaining,47.5);assert.equal(E.current(r).team.notes.retry,'Новый вопрос');assert.equal(E.current(r).round.stage,5);});
-test('malformed imports are rejected, not partially loaded',()=>{const s=E.create(settings());for(const mutate of [x=>x.schema=0,x=>x.currentRound=-1,x=>x.rounds[0].remaining=-2,x=>x.rounds[0].teams[0].resource='bad',x=>x.rounds[0].teams[0].assignments[0].roleId='bad',x=>x.rounds[0].teams[0].notes=null,x=>x.settings.teams=30,x=>x.rounds[0].teams[0].size=100]){const x=JSON.parse(JSON.stringify(s));mutate(x);assert.throws(()=>E.restore(JSON.stringify(x)));}assert.throws(()=>E.restore('{'));});
-test('negative settings and nonexistent situations fail before session creation',()=>{for(const changes of [{people:0},{people:41},{teams:9},{people:1,teams:2},{duration:17},{caseId:'С-07'},{roleMode:'anything'}])assert.throws(()=>E.create(settings(changes)));});
-test('every forward route requires resources from all teams, without partial mutation',()=>{
- const s=E.create(settings({teams:2}));E.move(s,4);E.resource(s,'Р-02');
- for(const stage of [5,6,7,8,9]){const before=JSON.stringify(s);assert.throws(()=>E.move(s,stage),/ресурс/);assert.equal(JSON.stringify(s),before);}
- s.currentTeam=1;E.resource(s,'Р-02');E.move(s,5);assert.equal(E.current(s).round.stage,5);
-});
-test('mini-sessions do not offer turns, while old saved notes and turns remain readable',()=>{
- for(const duration of [15,20]){const s=E.create(settings({duration}));E.resource(s,'Р-02');E.move(s,6);Object.keys(E.current(s).team.conditions).forEach(k=>E.current(s).team.conditions[k]=true);assert.deepEqual(E.eligibleTurns(s),[]);assert.throws(()=>E.turn(s,'К-05'));assert.match(E.stageCopy(s).prompt,/не используется/);
- E.current(s).team.turn='К-05';E.current(s).team.notes.decision='Историческая запись';const old=E.restore(JSON.stringify(s));assert.equal(E.current(old).team.notes.decision,'Историческая запись');assert.equal(E.current(old).team.turn,'К-05');}
-});
+require('../src/deck.js');require('../platform/metadata.js');
+const E=require('../platform/engine.js'),D=globalThis.PEDAGOG_DATA;
+let n=0;const test=(name,fn)=>{fn();n++;};
+const seq=(...v)=>{let i=0;return()=>v[i++%v.length];};
+const S=(o={})=>E.create({people:6,duration:40,caseId:'С-02',...o},seq(0));
+function walk(s,write=true){const r=E.current(s).round;while(true){const {key,team}=E.current(s);
+  if(['resource','quickResource'].includes(key))E.current(s).round.teams.forEach((t,i)=>E.resource(s,E.by('situations',t.caseId).resourceIds[0],i));
+  if(write&&E.STAGES[key].note&&E.STAGES[key].note!=='meeting')team.notes[E.STAGES[key].note]='запись '+key;
+  if(r.stage===r.stages.length-1)return;E.move(s,r.stage+1);}}
 
-
-test('every situation has a dilemma and a question for every compatible role',()=>{
- for(const c of D.situations){assert(c.dilemma.length>40,c.id);for(const id of c.roleSets.flat())assert(c.roleQuestions[id]?.endsWith('?'),c.id+' '+id);}
+test('форматы ровно 15/40/90; сумма этапов совпадает с длительностью',()=>{
+  assert.deepEqual(E.DURATIONS,[15,40,90]);for(const m of E.DURATIONS)assert.equal(E.totalMinutes(m),m);
+  assert.equal(E.FORMATS[90].rounds.length,2);assert.equal(E.FORMATS[90].rounds[0].at(-1)[0],'break');assert.equal(E.FORMATS[90].rounds[1].at(-1)[0],'summary');
+  for(const m of E.DURATIONS)for(const r of E.FORMATS[m].rounds){const keys=r.map(x=>x[0]);assert(keys.indexOf('first')<keys.indexOf('retry'));assert(keys.includes('reflect'));assert(r.every(([k,min])=>E.STAGES[k]&&min>=2));}
 });
-test('import rejects forged timing, round counts and background clocks',()=>{
- for(const mutate of [s=>s.plannedRounds=2,s=>s.rounds[0].plan[0]++,s=>{s.completed=true;s.rounds[0].running=true;}]){const s=E.create(settings());mutate(s);assert.throws(()=>E.restore(JSON.stringify(s)));}
- const s=E.create(settings({duration:90}));E.nextRound(s,'С-02');s.rounds[0].running=true;assert.throws(()=>E.restore(JSON.stringify(s)));
+test('старые длительности и неверные настройки отклоняются до создания',()=>{
+  for(const bad of [{duration:45},{duration:20},{people:0},{people:41},{people:2.5},{caseId:'С-07'},{caseId:'X'}])assert.throws(()=>S(bad));
 });
-test('selecting the active stage preserves remaining time and running state',()=>{const s=E.create(settings());s.rounds[0].remaining=17.2;s.rounds[0].running=true;E.move(s,0);assert.equal(s.rounds[0].remaining,17.2);assert.equal(s.rounds[0].running,true);});
-test('complete short and full sessions preserve decisions through export and restore',()=>{
- for(const duration of [15,45,60]){const s=E.create(settings({duration,people:8,teams:2}));for(let stage=0;stage<10;stage++){
-  if(stage===4)for(let i=0;i<2;i++){s.currentTeam=i;E.resource(s,E.current(s).situation.resourceIds[0]);}
-  E.move(s,stage);for(const t of s.rounds[0].teams){if(stage===2)t.notes.first='Первый способ';if(stage===5)t.notes.retry='Другой способ';if(stage===7)t.notes.decision='Учитель уточнит инструкцию завтра; ученик объяснит задание своими словами.';if(stage===8)t.notes.reflection='Сначала уточнить препятствие.';}
- }s.completed=true;const restored=E.restore(JSON.stringify(s));assert(restored.completed);assert.equal(restored.rounds[0].teams[1].notes.retry,'Другой способ');assert.match(restored.rounds[0].teams[0].notes.decision,/завтра/);}
+test('команды формируются автоматически, размеры складываются в число участников',()=>{
+  for(const people of [1,2,6,12,13,20,40]){const s=S({people});const r=s.rounds[0];assert.equal(r.teams.length,E.teamsFor(people));assert.equal(r.teams.reduce((a,t)=>a+t.size,0),people);assert(r.teams.every(t=>t.size>=1));}
+  assert.equal(E.teamsFor(12),1);assert.equal(E.teamsFor(13),3);assert.equal(E.teamsFor(40),7);
 });
-
-console.log(`${tests} test groups passed.`);
-assert.deepEqual(E.DURATIONS,[15,40,90]);
-for(const duration of E.DURATIONS){const s=E.create(settings({duration}));assert.equal(s.rounds[0].plan.reduce((a,b)=>a+b,0)*s.plannedRounds,duration*60);assert(E.validate(s));}
-console.log('Public formats: exactly 15/40/90; stage totals and restore validated.');
+test('каждый состав ролей совместим с местами ситуации; наблюдатели — сверх мест',()=>{
+  for(const c of D.situations)c.roleSets.forEach((set,i)=>{const ps=E.positions(c,i);assert.equal(ps.length,set.length);ps.forEach((p,j)=>{assert.equal(p.who,c.seats[j].who);assert(E.by('roles',p.roleId));});});
+  assert(D.roles.some(r=>r.id==='Ро-09'));assert(!D.situations.some(c=>c.roleSets.flat().includes('Ро-09')),'наблюдатель не занимает место в сцене');
+  const c=E.by('situations','С-14');assert.notEqual(E.positions(c)[1].who,E.positions(c)[2].who);
+});
+test('алгоритм назначения выбирает только существующие составы',()=>{
+  for(const c of D.situations)for(const k of [0,.5,.99]){const s=E.create({people:6,duration:40,caseId:c.id},()=>k);const t=s.rounds[0].teams[0];assert(E.by('situations',c.id).roleSets[t.roleSet]);}
+});
+test('мало людей или С-17 — совет коллег; один участник — без сцены',()=>{
+  assert.equal(S({people:2,caseId:'С-02'}).rounds[0].teams[0].discussion,true);
+  assert.equal(S({caseId:'С-17'}).rounds[0].teams[0].discussion,true);
+  const solo=S({people:1});assert.equal(solo.settings.solo,true);assert.equal(solo.rounds[0].teams[0].discussion,true);
+  E.setDiscussion(solo,false);assert.equal(E.current(solo).team.discussion,true);
+  E.move(solo,1);assert.match(E.stageCopy(solo).do,/Запишите/);
+});
+test('без ресурса нельзя перейти ко второй попытке — для каждой команды',()=>{
+  const s=S({people:20});E.move(s,3);assert.throws(()=>E.move(s,4),/команд/);
+  E.resource(s,'Р-02',0);assert.throws(()=>E.move(s,4));for(let i=1;i<s.settings.teams;i++)E.resource(s,'Р-02',i);E.move(s,4);assert.equal(E.current(s).key,'retry');
+  assert.throws(()=>E.resource(s,'Р-14'),/не подходит/);
+});
+test('переход назад разрешён; повторный выбор этапа не сбрасывает таймер',()=>{
+  const s=S();E.move(s,2);const r=s.rounds[0];r.remaining=17;r.running=true;E.move(s,2);assert.equal(r.remaining,17);assert.equal(r.running,true);E.move(s,0);assert.equal(r.running,false);assert.equal(r.remaining,r.plan[0]);
+});
+test('повороты: только в сравнении 40/90 минут, после ресурса, с условиями карточки',()=>{
+  const q=S({duration:15});walk(q);assert.deepEqual(E.eligibleTurns(q),[]);
+  const s=S({caseId:'С-04'});E.move(s,3);E.resource(s,'Р-06');E.move(s,5);const ids=E.eligibleTurns(s);assert(ids.includes('К-05')&&ids.includes('К-06'));
+  const talk=S({caseId:'С-02',people:2});E.move(talk,3);E.resource(talk,'Р-02');E.move(talk,5);assert(!E.eligibleTurns(talk).includes('К-02'));
+  const few=S({caseId:'С-03',people:2});E.move(few,3);E.resource(few,'Р-02');E.move(few,5);assert(!E.eligibleTurns(few).includes('К-07'));
+  const many=S({caseId:'С-03',people:6});E.move(many,3);E.resource(many,'Р-02');E.move(many,5);assert(E.eligibleTurns(many).includes('К-07'));E.turn(many,'К-07');assert(E.validate(many));
+});
+test('ситуацию можно заменить только на первых двух этапах',()=>{
+  const s=S();E.setCase(s,'С-21');assert.equal(E.current(s).situation.id,'С-21');E.move(s,1);E.setCase(s,'С-01');E.move(s,2);assert.throws(()=>E.setCase(s,'С-02'));
+});
+test('90 минут: перерыв, второй раунд с новой ситуацией, общий итог',()=>{
+  const s=S({duration:90,people:14});walk(s);assert.equal(E.current(s).key,'break');assert.equal(Math.round(E.remainingMeeting(s)/60),50);
+  E.nextRound(s,'С-21');assert.equal(s.rounds.length,2);assert.equal(E.current(s).situation.id,'С-21');walk(s);assert.equal(E.current(s).key,'summary');
+  s.meeting='Начинаем с уточняющего вопроса.';E.finish(s);assert(E.validate(s));
+  const back=E.restore(JSON.stringify(s));assert.equal(back.rounds[0].teams[0].notes.decision,'запись decision');assert.equal(back.meeting,s.meeting);
+});
+test('полный путь 15 и 40 минут сохраняет записи через экспорт и восстановление',()=>{
+  for(const d of [15,40]){const s=S({duration:d});walk(s);E.finish(s);const raw=JSON.stringify(s);const b=E.restore(raw);assert(b.completed);assert.equal(b.rounds[0].teams[0].notes.retry,'запись retry');assert.equal(b.rounds[0].teams[0].notes.decision,'запись '+(d===15?'quickDecision':'decision'));}
+});
+test('восстановление ставит таймер на паузу; дополнительные раунды ограничены',()=>{
+  const s=S();s.rounds[0].running=true;const b=E.restore(JSON.stringify(s));assert.equal(b.rounds[0].running,false);
+  for(let i=0;i<5;i++)E.nextRound(s,'С-01');assert.throws(()=>E.nextRound(s,'С-01'));assert(E.validate(s));
+});
+test('импорт отклоняет повреждённые и подделанные файлы целиком',()=>{
+  const good=S();const bad=[x=>x.schema=3,x=>x.settings.duration=45,x=>x.rounds[0].plan[0]=1,x=>x.rounds[0].teams[0].size=99,x=>x.rounds[0].teams[0].resource='Р-14',
+    x=>x.rounds[0].teams[0].turn='К-01',x=>x.rounds[0].teams[0].notes.first=1,x=>x.rounds[0].stage=4,x=>{x.completed=true;x.rounds[0].running=true;},x=>x.settings.teams=3,x=>x.rounds[0].teams[0].roleSet=7];
+  for(const f of bad){const x=JSON.parse(JSON.stringify(good));f(x);assert.equal(E.validate(x),false,String(f));}
+  assert.throws(()=>E.restore('{'),/не файл/);assert.throws(()=>E.restore(JSON.stringify({schema:3})),/прежней версии/);
+});
+test('тексты этапов отвечают на «что делать, кто, результат»',()=>{
+  for(const [k,st] of Object.entries(E.STAGES))assert(st.title&&st.do.length>40&&st.who&&st.result,k);
+  const c=S({caseId:'С-17'});E.move(c,1);assert.match(E.stageCopy(c).do,/без инсценировки|не изображают/);
+});
+console.log(`${n} групп проверок движка пройдены.`);
