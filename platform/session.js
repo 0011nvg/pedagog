@@ -1,4 +1,5 @@
-/* ПЕДАГОГ · интерфейс онлайн-игры (редакция 4.0). Один экран ведущего; состояние — в localStorage этого браузера.
+/* ПЕДАГОГ · интерфейс онлайн-игры. Один экран ведущего; текущая встреча сохраняется в localStorage этого браузера
+   (после перезагрузки страницы открывается на том же этапе).
    Ситуация раскрывается по этапам: новые обстоятельства и роли не показываются раньше своего этапа. */
 (function(){
 'use strict';
@@ -9,7 +10,7 @@ const query=new URLSearchParams(location.search);
 const setup={people:6,duration:40,caseId:'С-01',theme:''};
 {const d=Number(query.get('duration'));const mapped=({20:15,45:40,60:40,120:90})[d]||d;if(E.DURATIONS.includes(mapped))setup.duration=mapped;
  const c=query.get('case');if(E.by('situations',c))setup.caseId=c;}
-let state=null,stored=null,warning='',modal=null,lastTick=Date.now(),pauseOpen=false,announce='';
+let state=null,warning='',modal=null,lastTick=Date.now(),pauseOpen=false,announce='';
 
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -22,23 +23,21 @@ const enterLabel=n=>n===0?'с начала':`с обстоятельством $
 const host=()=>state&&state.view==='host';
 
 /* ---------- Хранение ---------- */
-function load(){try{const raw=localStorage.getItem(KEY);if(raw){stored=raw;state=E.restore(raw);}}catch(e){state=null;warning='Сохранённую встречу открыть не удалось: '+e.message;}}
-function save(){if(!state)return;try{localStorage.setItem(KEY,JSON.stringify(state));stored=null;}catch{warning='Браузер не сохраняет данные (приватный режим?). Скачайте итоги вручную перед закрытием вкладки.';}}
-function oldSave(){try{for(const k of OLD_KEYS){const v=localStorage.getItem(k);if(v)return {key:k,value:v};}}catch{}return null;}
+/* Несовместимое или повреждённое сохранение (например, от другой версии игры) молча удаляется — встреча начинается заново. */
+function load(){try{for(const k of OLD_KEYS)localStorage.removeItem(k);const raw=localStorage.getItem(KEY);if(raw)state=E.restore(raw);}catch{state=null;try{localStorage.removeItem(KEY);}catch{}}}
+function save(){if(!state)return;try{localStorage.setItem(KEY,JSON.stringify(state));}catch{warning='Браузер не сохраняет данные (приватный режим?). Скачайте итоги вручную перед закрытием вкладки.';}}
 function download(name,text,type='text/plain'){const url=URL.createObjectURL(new Blob([text],{type:type+';charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 
 /* ---------- Экран настройки ---------- */
 function stagePlan(minutes){return E.FORMATS[minutes].rounds.map((r,i)=>`<div class="table-wrap"><table><caption>${E.FORMATS[minutes].rounds.length>1?`Раунд ${i+1} · `:''}${r.reduce((a,x)=>a+x[1],0)} мин</caption><tbody>${r.map(([k,m],j)=>`<tr><td>${j+1}. ${esc(E.STAGES[k].title)}</td><td class="num">${m}</td></tr>`).join('')}</tbody></table></div>`).join('');}
 function renderSetup(){
   document.body.classList.remove('participant');
-  const c=E.by('situations',setup.caseId),teams=E.teamsFor(setup.people),old=oldSave();
+  const c=E.by('situations',setup.caseId),teams=E.teamsFor(setup.people);
   const cases=D.situations.filter(x=>!setup.theme||x.theme===setup.theme);
   const themes=[...new Set(D.situations.map(x=>x.theme))];
   app.innerHTML=`<section class="page-hero" style="padding-bottom:clamp(40px,5vw,64px)"><div class="wrap"><p class="eyebrow">Онлайн-игра</p><h1><span class="dim">Подготовка</span> встречи</h1><p class="lead">Три шага: время, число участников и ситуация. Дальше сайт распределит роли и поведёт по этапам — новые обстоятельства откроются в нужный момент.</p></div><div class="hero-deco">${A.pageDeco(E.castOrder(c).slice(0,3).map(x=>x.type))}</div></section>
   <div class="wrap game-shell">
   ${warning?`<p class="note-card" role="alert">${esc(warning)}</p>`:''}
-  ${stored&&!state?`<div class="note-card"><h3>Прежнее сохранение</h3><p>Сохранённую встречу нельзя продолжить в этой версии. <button class="btn small" id="dl-stored">Скачать её файл</button></p></div>`:''}
-  ${old?`<div class="note-card teal" style="margin-bottom:20px"><h3>Встреча прежней редакции</h3><p>В браузере осталась встреча, начатая до обновления игры 30.10.2026. Продолжить её нельзя: изменились роли и ход раунда. Записи можно сохранить файлом.</p><div class="actions" style="margin-top:8px"><button class="btn small" id="dl-old">Скачать записи</button><button class="btn small" id="rm-old">Удалить из браузера</button></div></div>`:''}
   <form class="setup" id="setup-form" novalidate><div class="panel">
    <section class="setup-step"><h3><span>1</span>Сколько у вас времени?</h3><div class="dur" role="group" aria-label="Формат">${E.DURATIONS.map(m=>`<button type="button" id="preset-${m}" data-dur="${m}" aria-pressed="${m===setup.duration}"><b>${m}</b><span>${esc(E.FORMATS[m].title)}</span><small>${esc(E.FORMATS[m].people)}</small></button>`).join('')}</div></section>
    <section class="setup-step"><h3><span>2</span>Сколько участников?</h3><div class="stepper"><button type="button" id="ppl-minus" aria-label="Меньше участников">−</button><input id="people" inputmode="numeric" type="number" min="1" max="40" value="${setup.people}" aria-label="Число участников"><button type="button" id="ppl-plus" aria-label="Больше участников">+</button></div>
@@ -47,15 +46,14 @@ function renderSetup(){
     <div class="chips" role="group" aria-label="Темы">${['',...themes].map(t=>`<button type="button" class="chip" data-theme="${esc(t)}" aria-pressed="${t===setup.theme}">${t?esc(t):'Все темы'}</button>`).join('')}</div>
     <label class="sr" for="case-select">Ситуация</label><select id="case-select" class="sr" tabindex="-1">${D.situations.map(x=>`<option value="${x.id}"${x.id===setup.caseId?' selected':''}>${x.id} ${esc(x.title)}</option>`).join('')}</select>
     <div class="case-pick" role="group" aria-label="Ситуации">${cases.map(x=>`<button type="button" data-case="${x.id}" aria-pressed="${x.id===setup.caseId}"><small>${x.id} · ${esc(x.theme)}</small><b>${esc(x.title)}</b><span class="badges">${E.castOrder(x).map(r=>badge(r.type,'sm')).join('')}</span></button>`).join('')}</div></section>
-   <section class="setup-step"><h3><span>↺</span>Продолжить на другом компьютере</h3><label class="small muted" for="import-file">Откройте файл .json, сохранённый в конце прошлой встречи.</label><input type="file" id="import-file" accept=".json,application/json"></section>
   </div>
   <aside class="setup-summary"><div class="situation-card"><p class="pill" style="color:#fff;border-color:rgba(255,255,255,.45)">${c.id} · ${esc(c.grade)}</p><h2 style="font-size:28px;margin-top:14px">${esc(c.title)}</h2><p>${esc(c.text)}</p><p class="opening">${esc(c.opening)}</p>
    <dl><dt>Роли по порядку входа</dt><dd><span class="badges">${E.castOrder(c).map(r=>badge(r.type,'sm')).join('')}</span><br><span class="small">${E.castOrder(c).filter(r=>r.enters===0).map(r=>esc(r.label)).join(', ')} — с начала; ещё ${c.cast.filter(r=>r.enters>0).length} войдут по ходу</span></dd><dt>Регламент · ${setup.duration} минут</dt><dd>${E.FORMATS[setup.duration].rounds.flat().map(([k,m])=>`${esc(E.STAGES[k].short)} ${m}`).join(' · ')}</dd></dl>
    <div class="actions"><button type="submit" class="btn white" id="start">Начать встречу →</button><a class="link-arrow" style="color:#fff" href="library.html?case=${encodeURIComponent(c.id)}">Паспорт ситуации</a></div></div>
    <p class="small muted" style="margin-top:14px">Записи хранятся только в этом браузере. Не вводите имена и узнаваемые подробности о детях и коллегах.</p></aside></form></div>`;
-  bindSetup(old);
+  bindSetup();
 }
-function bindSetup(old){
+function bindSetup(){
   app.querySelectorAll('[data-dur]').forEach(b=>b.onclick=()=>{setup.duration=Number(b.dataset.dur);renderSetup();});
   app.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{setup.theme=b.dataset.theme;renderSetup();});
   app.querySelectorAll('[data-case]').forEach(b=>b.onclick=()=>{setup.caseId=b.dataset.case;renderSetup();const el=app.querySelector(`[data-case="${b.dataset.case}"]`);if(el)el.focus();});
@@ -64,9 +62,6 @@ function bindSetup(old){
   $('case-select').onchange=e=>{setup.caseId=e.target.value;renderSetup();};
   $('setup-form').onsubmit=e=>{e.preventDefault();const n=Number($('people').value);if(Number.isInteger(n)&&n>=1&&n<=40)setup.people=n;
     try{state=E.create({people:setup.people,duration:setup.duration,caseId:setup.caseId});warning='';save();render();window.scrollTo(0,0);}catch(err){warning=err.message;renderSetup();}};
-  $('import-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{state=E.restore(await f.text());warning='';save();render();}catch(err){warning=err.message;renderSetup();}};
-  if($('dl-stored'))$('dl-stored').onclick=()=>download('pedagog-sohranenie.json',stored,'application/json');
-  if(old){$('dl-old').onclick=()=>download('pedagog-prezhnyaya-vstrecha.json',old.value,'application/json');$('rm-old').onclick=()=>{if(confirm('Удалить записи прежней встречи из этого браузера?')){try{localStorage.removeItem(old.key);}catch{}renderSetup();}};}
 }
 
 /* ---------- Экран встречи ---------- */
@@ -132,7 +127,7 @@ function renderSession(){
     ${futureEvents.length&&!['solution','reflect','break','summary'].includes(cur.key)?futureEvents.map(n=>`<div class="locked-card"><span class="lock"><span>${n}</span></span><span>Обстоятельство ${n} откроется на этапе «${esc(E.STAGES[r.stages.find(k=>E.STAGES[k].reveal>=n)].title)}»</span></div>`).join(''):''}
    </div></div>
    ${castBoard(cur)}</div>
-   ${isHost?`<div class="actions" style="justify-content:flex-end"><button type="button" class="btn small" id="export-json">Сохранить файл встречи</button><button type="button" class="btn small" id="reset">Новая встреча</button></div>`:''}
+   ${isHost?`<div class="actions" style="justify-content:flex-end"><button type="button" class="btn small" id="reset">Новая встреча</button></div>`:''}
   </div>
   <div class="modal" id="modal" hidden></div>`;
   bindSession(cur);announce='';
@@ -168,8 +163,7 @@ function bindSession(cur){const r=cur.round;
   app.querySelectorAll('[data-res]').forEach(b=>b.onclick=()=>act(()=>E.resource(state,cur.team.resource===b.dataset.res?null:b.dataset.res)));
   app.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>roleModal(cur.situation,b.dataset.role));
   const note=$('note');if(note)note.oninput=()=>{if(note.dataset.note==='meeting')state.meeting=note.value.slice(0,12000);else cur.team.notes[note.dataset.note]=note.value.slice(0,12000);save();};
-  if($('export-json'))$('export-json').onclick=()=>download(`pedagog-vstrecha-${state.started.slice(0,10)}.json`,JSON.stringify(state,null,1),'application/json');
-  if($('reset'))$('reset').onclick=()=>{if(confirm('Начать новую встречу? Текущие записи будут удалены из браузера. Сначала можно сохранить файл встречи.')){try{localStorage.removeItem(KEY);}catch{}state=null;render();window.scrollTo(0,0);}};
+  if($('reset'))$('reset').onclick=()=>{if(confirm('Начать новую встречу? Текущие записи будут удалены из браузера.')){try{localStorage.removeItem(KEY);}catch{}state=null;render();window.scrollTo(0,0);}};
 }
 function pickNext(c){const other=D.situations.filter(x=>x.theme!==c.theme);return (other[Math.floor(Math.random()*other.length)]||D.situations[0]).id;}
 
@@ -182,13 +176,12 @@ function summaryText(){const L=[];L.push('ПЕДАГОГ · итоги встр�
   L.push('','Записи без имён и узнаваемых подробностей. Игра не используется для оценки сотрудников.');return L.join('\n');}
 function renderSummary(){document.body.classList.remove('participant');
   app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Встреча завершена</p><h1><span class="dim">Итоги</span> встречи</h1><p class="lead">Решения команд и общий вывод. Личные шаги остаются у участников. Скачайте итоги — в браузере они хранятся только до новой встречи.</p>
-  <div class="actions"><button class="btn white" id="dl-txt">Скачать итоги (.txt)</button><button class="btn ghost-light" id="dl-json">Файл встречи (.json)</button><button class="btn ghost-light" id="print-sum">Распечатать</button></div></div><div class="hero-deco">${A.pageDeco(['Ро-06','Ро-04','Ро-01'])}</div></section>
+  <div class="actions"><button class="btn white" id="dl-txt">Скачать итоги (.txt)</button><button class="btn ghost-light" id="print-sum">Распечатать</button></div></div><div class="hero-deco">${A.pageDeco(['Ро-06','Ро-04','Ро-01'])}</div></section>
   <section class="page-body"><div class="wrap">${state.rounds.map(r=>r.teams.map(t=>{const c=E.by('situations',t.caseId);return `<article class="panel summary-team"><p class="eyebrow">Раунд ${r.number}${r.teams.length>1?' · команда '+t.number:''}</p><h2 style="font-size:28px">${esc(c.title)}</h2>
    <dl>${t.resource?`<dt>Ресурс</dt><dd>${esc(E.by('resources',t.resource).title)}</dd>`:''}${E.NOTE_KEYS.map(k=>t.notes[k].trim()?`<dt>${esc(E.NOTE_LABELS[k])}</dt><dd>${esc(t.notes[k])}</dd>`:'').join('')||'<dt>Записи</dt><dd class="muted">Команда ничего не записала — это допустимо.</dd>'}</dl></article>`;}).join('')).join('')}
    ${state.meeting.trim()?`<article class="panel summary-team"><p class="eyebrow">Общий итог</p><dl><dt>Итог встречи</dt><dd>${esc(state.meeting)}</dd></dl></article>`:''}
    <div class="actions"><button class="btn" id="reopen">← Вернуться к встрече</button><button class="btn primary" id="new-meeting">Новая встреча</button></div></div></section>`;
   $('dl-txt').onclick=()=>download(`pedagog-itogi-${state.started.slice(0,10)}.txt`,summaryText());
-  $('dl-json').onclick=()=>download(`pedagog-vstrecha-${state.started.slice(0,10)}.json`,JSON.stringify(state,null,1),'application/json');
   $('print-sum').onclick=()=>window.print();
   $('reopen').onclick=()=>act(()=>E.reopen(state));
   $('new-meeting').onclick=()=>{if(confirm('Начать новую встречу? Записи этой встречи будут удалены из браузера.')){try{localStorage.removeItem(KEY);}catch{}state=null;render();window.scrollTo(0,0);}};

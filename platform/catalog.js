@@ -5,7 +5,7 @@ const D=globalThis.PEDAGOG_DATA,M=globalThis.PEDAGOG_META,E=globalThis.PEDAGOG_S
 const app=document.getElementById('app');if(!app||!D)return;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const T=id=>D.roleTypes.find(t=>t.id===id);
-const accent={'Урок и мотивация':'#3B4A99','Оценивание':'#6874C2','Семья и школа':'#E0A64E','Поддержка ученика':'#2A958E','Отношения и воспитание':'#E8673F','Коллеги и наставничество':'#8366B0','Нагрузка и организация':'#28336E'};
+const accent=M.themeColors;
 const page=document.body.dataset.page;
 const enterLabel=n=>n===0?'С начала':`С обстоятельством ${n}`;
 const sub=`<nav class="subnav" aria-label="Материалы игры"><a href="library.html"${page==='library'?' aria-current="page"':''}>Ситуации</a><a href="cards.html"${page==='cards'?' aria-current="page"':''}>Роли, ресурсы, рефлексия</a><a href="methods.html">Помощь ведущему</a></nav>`;
