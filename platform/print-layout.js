@@ -48,34 +48,28 @@ function resourceFront(r){return `${head('resource','Ресурс',r.id,'#2A958E
 function refcardFront(r){return `${head('refcard','Вопрос рефлексии',r.id,'#6874C2')}<div class="pc-body center"><p class="pc-kicker">После выхода из ролей</p><h2 class="pc-title">${esc(r.title)}</h2><p class="pc-big">${esc(r.text)}</p></div>`;}
 
 /* ---------- Обороты ---------- */
-/* Рубашка карточки: цветной фон в цвет заголовка лицевой стороны, крупная фирменная эмблема школы из шапки сайта
-   (белым контуром), несколько звёзд, категория и когда карточка вступает в игру. Цвет рисунка — currentColor,
-   поэтому в экономной печати рубашка становится белой с цветным контуром. */
+/* Рубашка карточки: цветной фон в цвет заголовка лицевой стороны, свободно рассыпанные звёзды (белые и мягкие
+   жёлтые, на светлых фонах — тёмные), крупно тип карточки и название. Без изображений здания.
+   Звёзды обходят центральную зону с текстом; расположение псевдослучайное, зависит от названия карточки. */
 const LIGHT={'#F3A27A':'#2A1D17','#E0A64E':'#2A2010','#62B9AF':'#10302D','#C9CCEB':'#28336E'};
-function emblem(){return `<svg class="pc-emblem" viewBox="0 0 64 56" aria-hidden="true">
-  <path d="M5 50.5h54" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" opacity=".55"/>
-  <rect x="7" y="27" width="50" height="23.5" rx="2.4" fill="currentColor" fill-opacity=".14" stroke="currentColor" stroke-width="1.5"/>
-  <rect x="22.5" y="15.5" width="19" height="35" rx="2" fill="currentColor" fill-opacity=".26" stroke="currentColor" stroke-width="1.5"/>
-  <rect x="25.5" y="19.5" width="13" height="5" rx="1.2" fill="currentColor"/>
-  <rect x="28.5" y="38.5" width="7" height="12" rx="1.4" fill="currentColor"/>
-  <g fill="currentColor"><rect x="11" y="31.5" width="4.4" height="5" rx=".9"/><rect x="16.6" y="31.5" width="4.4" height="5" rx=".9"/><rect x="11" y="40.5" width="4.4" height="5" rx=".9"/><rect x="16.6" y="40.5" width="4.4" height="5" rx=".9"/>
-   <rect x="43" y="31.5" width="4.4" height="5" rx=".9"/><rect x="48.6" y="31.5" width="4.4" height="5" rx=".9"/><rect x="43" y="40.5" width="4.4" height="5" rx=".9"/><rect x="48.6" y="40.5" width="4.4" height="5" rx=".9"/>
-   <rect x="27" y="28.5" width="10" height="6" rx=".9"/></g>
-  <path d="M53 6.5l1.5 4.3 4.3 1.5-4.3 1.5-1.5 4.3-1.5-4.3-4.3-1.5 4.3-1.5Z" fill="currentColor"/>
-  <path d="M9 9l.9 2.6 2.6.9-2.6.9-.9 2.6-.9-2.6-2.6-.9 2.6-.9Z M60 27l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7Z" fill="currentColor" opacity=".55"/>
-  </svg>`;}
-function brandBack(label,id,sub='',accent='#3B4A99',title=''){const fg=LIGHT[accent]||'#FFFFFF',eco=LIGHT[accent]||accent;
-  return `<div class="pc-back" style="--a:${accent};--fg:${fg};--eco:${eco}"><div class="pc-back-frame">
+function cardStars(key,dark){let x=0;for(const ch of key)x=(x*31+ch.charCodeAt(0))>>>0;x=x||1;const rnd=()=>(x=(x*1664525+1013904223)>>>0)/4294967296;
+  const cols=dark?['#FFFFFF','#FFFFFF','#FFF4CC','#FFE7A3']:['currentColor'];const out=[];let n=0;
+  while(out.length<46&&n++<400){const px=4+rnd()*91,py=12+rnd()*118;if(py>44&&py<104&&px>8&&px<91)continue;
+    const r=rnd(),c=cols[Math.floor(rnd()*cols.length)],o=(dark?.55:.3)+rnd()*(dark?.45:.25);
+    if(r<.72)out.push(`<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${(0.28+rnd()*0.34).toFixed(2)}" fill="${c}" fill-opacity="${o.toFixed(2)}"/>`);
+    else{const s=r>.95?2.6+rnd()*1.2:1.1+rnd()*0.9,k=s*.18;out.push(`<path fill="${c}" fill-opacity="${Math.min(1,o+.1).toFixed(2)}" d="M${px} ${py-s}C${px+k} ${py-k} ${px+k} ${py-k} ${px+s} ${py}C${px+k} ${py+k} ${px+k} ${py+k} ${px} ${py+s}C${px-k} ${py+k} ${px-k} ${py+k} ${px-s} ${py}C${px-k} ${py-k} ${px-k} ${py-k} ${px} ${py-s}Z"/>`);}}
+  return `<svg class="pc-stars" viewBox="0 0 99 140" preserveAspectRatio="none" aria-hidden="true">${out.join('')}</svg>`;}
+function brandBack(label,id,sub='',accent='#3B4A99',title=''){const light=LIGHT[accent],fg=light||'#FFFFFF',eco=light||accent;
+  return `<div class="pc-back" style="--a:${accent};--fg:${fg};--eco:${eco}"><div class="pc-back-frame">${cardStars(id+label+title+sub,!light)}
   <p class="pc-back-top"><span>ПЕДАГОГ</span><span>${esc(id)}</span></p>
-  <div class="pc-back-art">${emblem()}</div>
   <div class="pc-back-text"><p class="pc-back-label">${esc(label)}</p>${title?`<p class="pc-back-title">${title}</p>`:''}${sub?`<p class="pc-back-sub">${sub}</p>`:''}</div>
   <p class="pc-back-foot">деловая игра для педагогов</p></div></div>`;}
-function roleBack(c,x){const t=T(x.type);return brandBack('Роль',c.id,`Входит ${ENTER(x.enters)}`,t.color,esc(t.title));}
+function roleBack(c,x){const t=T(x.type);return brandBack('Роль',c.id,`Входит ${ENTER(x.enters)}`,t.color,esc(x.label));}
 function eventBack(c,n){return brandBack('Обстоятельство',c.id,'Не открывать до сигнала ведущего','#E8673F',`${n} из 3`);}
 
 /* ---------- Комплекты ---------- */
 function card(kind,caseId,front,back){return {kind,caseId,front,back};}
-function kit(c,S,{observers=1}={}){const cards=[card('situation',c.id,situationFront(c),brandBack('Исходная ситуация',c.id,'Читается вслух в начале игры','#3B4A99',esc(c.title)))];
+function kit(c,S,{observers=1}={}){const cards=[card('situation',c.id,situationFront(c),brandBack('Ситуация',c.id,`С начала: ${(l=>l.length>1?l.slice(0,-1).join(', ')+' и '+l[l.length-1]:l[0])(castOrder(c).filter(x=>x.enters===0).map(x=>esc(x.label)))}`,'#3B4A99',esc(c.title)))];
   castOrder(c).forEach(x=>cards.push(card('role',c.id,roleFront(c,x),roleBack(c,x))));
   c.events.forEach((ev,i)=>cards.push(card('event',c.id,eventFront(c,ev,i+1),eventBack(c,i+1))));
   cards.push(card('host',c.id,hostFront(c,S),hostBack(c)));
