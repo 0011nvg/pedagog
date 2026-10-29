@@ -59,3 +59,6 @@ test('complete short and full sessions preserve decisions through export and res
 });
 
 console.log(`${tests} test groups passed.`);
+assert.deepEqual(E.DURATIONS,[15,40,90]);
+for(const duration of E.DURATIONS){const s=E.create(settings({duration}));assert.equal(s.rounds[0].plan.reduce((a,b)=>a+b,0)*s.plannedRounds,duration*60);assert(E.validate(s));}
+console.log('Public formats: exactly 15/40/90; stage totals and restore validated.');
