@@ -188,7 +188,7 @@ function clock(){if(!state||!$('session-timer'))return;const r=E.current(state).
 
 /* ---------- Запуск ---------- */
 try{stored=localStorage.getItem(KEY);if(stored)state=E.restore(stored);}catch(err){state=null;warning='Сохранённую встречу не удалось открыть: '+(err&&err.message||'файл повреждён')+' Можно начать новую.';}
-setInterval(()=>{const was=state&&!state.completed&&E.current(state).round.running;advanceClock();if(was){save();clock();}},1000);
+setInterval(()=>{const was=state&&!state.completed&&E.current(state).round.running;advanceClock();if(was){save();clock();}},250);
 window.addEventListener('storage',event=>{if(state&&(event.key===KEY||event.key===null))conflict();});
 window.addEventListener('pageshow',event=>{if(state&&event&&event.persisted){state.rounds.forEach(r=>r.running=false);tick=Date.now();clock();}});
 window.addEventListener('pagehide',()=>{if(state){advanceClock();state.rounds.forEach(r=>r.running=false);save();}});
