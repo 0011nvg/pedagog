@@ -31,7 +31,7 @@ function advanceClock(){const now=Date.now(),dt=Math.max(0,(now-tick)/1000);tick
 
 /* ---------- Итоги ---------- */
 function teamReport(t){const c=E.by('situations',t.caseId),res=t.resource&&E.by('resources',t.resource),tu=t.turn&&E.by('turns',t.turn);
- return [`${c.id} «${c.title}»`,`Позиции: ${E.positions(c,t.roleSet).map(p=>p.who+' ('+E.by('roles',p.roleId).title.toLowerCase()+')').join(', ')}${t.discussion?' · совет коллег без сцены':''}`,
+ return [`${c.id} «${c.title}»`,`Позиции: ${E.positions(c,t.roleSet).map(p=>p.who+(LENS[p.roleId]&&LENS[p.roleId]!==p.who.toLowerCase()?' — '+LENS[p.roleId]:'')).join('; ')}${t.discussion?' · совет коллег без сцены':''}`,
  `Ресурс: ${res?res.title:'не выбран'}${tu?` · поворот: ${tu.title}`:''}`,...E.NOTE_KEYS.map(k=>`${NOTE_LABELS[k]}: ${t.notes[k].trim()||'—'}`)].join('\n');}
 function reportText(){const f=E.FORMATS[state.settings.duration];const lines=['ПЕДАГОГ · итоги встречи',`Дата: ${new Date(state.started).toLocaleDateString('ru-RU')}`,`Формат: ${state.settings.duration} минут — ${f.title.toLowerCase()} · участников: ${state.settings.people}${state.settings.teams>1?` · команд: ${state.settings.teams}`:''}`,''];
  state.rounds.forEach(r=>{lines.push(`РАУНД ${r.number}`);r.teams.forEach(t=>{if(state.settings.teams>1)lines.push(`Команда ${t.number} (${t.size} ${peopleWord(t.size)})`);lines.push(teamReport(t),'');});});
