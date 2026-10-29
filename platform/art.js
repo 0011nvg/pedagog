@@ -54,7 +54,11 @@ function heroScene(){
   const d=roadPath(ROAD);
   return `<svg class="hero-land" viewBox="0 0 1440 640" preserveAspectRatio="xMaxYMax slice" role="img" aria-label="Иллюстрация: вечер, звёзды, горы и ёлки; извилистая дорога ведёт к дверям школы">
   <circle cx="1124" cy="250" r="214" fill="#4352A3"/><circle cx="1124" cy="250" r="142" fill="#4D5CAC"/>
-  ${stars.map(([x,y,s,dl])=>star(x,y,s,'#fff','twinkle').replace('<path ',`<path style="animation-delay:${dl}s" `)).join('')}
+  <defs><filter id="starGlow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+   <radialGradient id="starHalo"><stop offset="0" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+   <radialGradient id="roadLight"><stop offset="0" stop-color="#FFE8B0"/><stop offset=".45" stop-color="#FFD98A" stop-opacity=".75"/><stop offset="1" stop-color="#FFD98A" stop-opacity="0"/></radialGradient></defs>
+  ${stars.filter(([,,s])=>s>=9).map(([x,y,s,dl])=>`<circle class="star-halo" style="animation-delay:${dl}s" cx="${x}" cy="${y}" r="${s*2.6}" fill="url(#starHalo)"/>`).join('')}
+  <g filter="url(#starGlow)">${stars.map(([x,y,s,dl],i)=>star(x,y,s,'#fff','twinkle').replace('<path ',`<path style="animation-delay:${dl}s;animation-duration:${[3.2,4.4,2.8,5.2][i%4]}s" `)).join('')}</g>
   ${dots.map(([x,y],i)=>`<circle class="twinkle" style="animation-delay:${(i*.7)%3}s" cx="${x}" cy="${y}" r="1.8" fill="#DADCF3"/>`).join('')}
   <path d="M300 640L420 520L500 470L560 500L640 430L720 480L790 420L860 470L930 410L1010 452L1080 400L1160 446L1240 404L1330 450L1440 418V640Z" fill="#4250A3"/>
   <path d="M640 430L662 448L652 446L646 456L636 446L622 450Z M930 410L952 428L942 426L936 436L926 426L912 430Z M1240 404L1262 422L1252 420L1246 430L1236 420L1222 424Z" fill="#6573C0"/>
@@ -67,7 +71,8 @@ function heroScene(){
   ${tree(1316,446,17,'#8ED3CB')}${fir(1346,452,54)}${fir(1368,452,36)}
   <path d="M0 600C240 566 480 606 720 586C930 568 1150 548 1440 556V640H0Z" fill="#F4F4F9"/>
   <path d="${d}" fill="none" stroke="#AEB6E8" stroke-opacity=".55" stroke-width="15" stroke-linecap="round"/>
-  <path d="${d}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="10 11" stroke-linecap="round"/>
+  <path class="road-dash" d="${d}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="10 11" stroke-linecap="round"/>
+  <g class="road-light" style="offset-path:path('${d}')"><circle r="16" fill="url(#roadLight)"/><circle r="3.2" fill="#FFF6DD"/></g>
   ${marks.map(([i,t,c,dl])=>{const [x,y]=at(i,t);return marker(x,y-1,c,{delay:dl,size:1.1});}).join('')}
   </svg>`;}
 
