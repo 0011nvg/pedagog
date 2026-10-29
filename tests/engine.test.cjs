@@ -41,4 +41,21 @@ test('mini-sessions do not offer turns, while old saved notes and turns remain r
  for(const duration of [15,20]){const s=E.create(settings({duration}));E.resource(s,'Р-02');E.move(s,6);Object.keys(E.current(s).team.conditions).forEach(k=>E.current(s).team.conditions[k]=true);assert.deepEqual(E.eligibleTurns(s),[]);assert.throws(()=>E.turn(s,'К-05'));assert.match(E.stageCopy(s).prompt,/не используется/);
  E.current(s).team.turn='К-05';E.current(s).team.notes.decision='Историческая запись';const old=E.restore(JSON.stringify(s));assert.equal(E.current(old).team.notes.decision,'Историческая запись');assert.equal(E.current(old).team.turn,'К-05');}
 });
+
+
+test('every situation has a dilemma and a question for every compatible role',()=>{
+ for(const c of D.situations){assert(c.dilemma.length>40,c.id);for(const id of c.roleSets.flat())assert(c.roleQuestions[id]?.endsWith('?'),c.id+' '+id);}
+});
+test('import rejects forged timing, round counts and background clocks',()=>{
+ for(const mutate of [s=>s.plannedRounds=2,s=>s.rounds[0].plan[0]++,s=>{s.completed=true;s.rounds[0].running=true;}]){const s=E.create(settings());mutate(s);assert.throws(()=>E.restore(JSON.stringify(s)));}
+ const s=E.create(settings({duration:90}));E.nextRound(s,'С-02');s.rounds[0].running=true;assert.throws(()=>E.restore(JSON.stringify(s)));
+});
+test('selecting the active stage preserves remaining time and running state',()=>{const s=E.create(settings());s.rounds[0].remaining=17.2;s.rounds[0].running=true;E.move(s,0);assert.equal(s.rounds[0].remaining,17.2);assert.equal(s.rounds[0].running,true);});
+test('complete short and full sessions preserve decisions through export and restore',()=>{
+ for(const duration of [15,45,60]){const s=E.create(settings({duration,people:8,teams:2}));for(let stage=0;stage<10;stage++){
+  if(stage===4)for(let i=0;i<2;i++){s.currentTeam=i;E.resource(s,E.current(s).situation.resourceIds[0]);}
+  E.move(s,stage);for(const t of s.rounds[0].teams){if(stage===2)t.notes.first='Первый способ';if(stage===5)t.notes.retry='Другой способ';if(stage===7)t.notes.decision='Учитель уточнит инструкцию завтра; ученик объяснит задание своими словами.';if(stage===8)t.notes.reflection='Сначала уточнить препятствие.';}
+ }s.completed=true;const restored=E.restore(JSON.stringify(s));assert(restored.completed);assert.equal(restored.rounds[0].teams[1].notes.retry,'Другой способ');assert.match(restored.rounds[0].teams[0].notes.decision,/завтра/);}
+});
+
 console.log(`${tests} test groups passed.`);
