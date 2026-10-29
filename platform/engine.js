@@ -3,7 +3,8 @@
   'use strict';
   const D = root.PEDAGOG_DATA;
   const VERSION = 3;
-  const DURATIONS = [15, 20, 45, 60, 90, 120];
+  const DURATIONS = [15, 40, 90];
+  const COMPATIBLE_DURATIONS = [...DURATIONS,20,45,60,120];
   const STAGES = [
     ['welcome','Договорённости','Назовите цель. Каждый вправе выбрать наблюдение, пропустить ответ или остановиться. Используйте вымышленные ситуации; не называйте реальных детей и коллег.'],
     ['prepare','Ситуация и позиции','Прочитайте ситуацию, цель и ограничения. Распределите места между добровольцами. Наблюдателям: отметьте точную реплику, возможное последствие и уточняющий вопрос.'],
@@ -22,6 +23,7 @@
   const integer = (v,a,b) => Number.isInteger(v)&&v>=a&&v<=b;
   const text = v => typeof v==='string'&&v.length<=12000;
   function budget(minutes){
+    if(minutes===40)return [2,5,4,3,3,4,4,5,7,3].map(v=>v*60);
     if(minutes===15)return [1,2,1,1,1,2,1,2,3,1].map(v=>v*60);
     if(minutes===20)return [2,3,2,1,1,2,2,2,3,2].map(v=>v*60);
     const weights=[.08,.12,.10,.08,.08,.10,.10,.12,.14,.08];
@@ -42,7 +44,7 @@
     return {number,size,caseId:c.id,roleSet:set,assignments:positions(c,set),discussion:c.id==='С-17'||size<c.roleSets[set].length,resource:null,turn:null,conditions:{consent:false,time:false,swap:false,written:false,condition:false,tool:false,volunteer:false},notes:{first:'',observed:'',retry:'',consequences:'',decision:'',reflection:''}};
   }
   function create(settings,rng=Math.random){
-    if(!integer(settings.people,1,40)||!integer(settings.teams,1,8)||settings.teams>settings.people||!DURATIONS.includes(settings.duration)||!by('situations',settings.caseId)||!['random','manual'].includes(settings.roleMode)||!['random','choice'].includes(settings.resourceMode)||typeof settings.facilitator!=='boolean')throw new Error('Проверьте количество участников, команд и настройки.');
+    if(!integer(settings.people,1,40)||!integer(settings.teams,1,8)||settings.teams>settings.people||!COMPATIBLE_DURATIONS.includes(settings.duration)||!by('situations',settings.caseId)||!['random','manual'].includes(settings.roleMode)||!['random','choice'].includes(settings.resourceMode)||typeof settings.facilitator!=='boolean')throw new Error('Проверьте количество участников, команд и настройки.');
     const count=settings.duration>=90?2:1;
     const plan=budget(settings.duration/count);
     const c=by('situations',settings.caseId);

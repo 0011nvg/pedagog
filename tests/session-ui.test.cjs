@@ -36,3 +36,8 @@ console.log('Session controller: stage guard, concurrent save/delete protection,
  f.events.pagehide();f.events.pageshow();f.advance(5000);f.pulse();assert.equal(JSON.parse(f.storage.get(f.key)).rounds[0].remaining,119);assert.equal(JSON.parse(f.storage.get(f.key)).rounds[0].running,false);
 }
 console.log('Timer regression: mode change keeps fractional elapsed time; page restore pauses.');
+{
+ const source=fs.readFileSync('platform/session.js','utf8');
+ for(const id of ['duration','complexity','role-mode','resource-mode','facilitator','teams'])assert(!source.includes('id="'+id+'"'),'removed setup field: '+id);
+ assert(source.includes('aria-pressed="${setup.duration===m}"'));
+}
