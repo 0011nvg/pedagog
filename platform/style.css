@@ -218,7 +218,8 @@ main{display:block}
 .page-hero .lead{color:#DCDEF4}
 .page-hero.teal .lead{color:#E3F4F2}
 .page-hero .eyebrow{color:var(--aqua)}.page-hero.teal .eyebrow{color:#D5F1EE}
-.page-hero .hero-deco{position:absolute;right:-40px;bottom:-20px;width:min(520px,48vw);opacity:.9;pointer-events:none}
+.page-hero .hero-deco{position:absolute;right:0;bottom:-20px;width:min(520px,44vw);opacity:.9;pointer-events:none}
+.situation-card .badge{box-shadow:0 0 0 2px rgba(255,255,255,.9)}
 .subnav{display:flex;flex-wrap:wrap;gap:8px;margin-top:26px}
 .subnav a{color:#fff;text-decoration:none;font-weight:600;font-size:14.5px;padding:8px 16px;border:1.5px solid rgba(255,255,255,.4);border-radius:var(--pill)}
 .subnav a:hover,.subnav a[aria-current="page"]{background:#fff;color:var(--indigo-700)}
@@ -237,7 +238,7 @@ main{display:block}
 .steps-list li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:16px;align-items:start;background:var(--paper);border-radius:var(--r);padding:18px 20px;box-shadow:var(--shadow)}
 .steps-list li::before{content:counter(s);display:grid;place-items:center;width:44px;height:44px;border-radius:50%;background:var(--indigo);color:#fff;font:800 17px var(--display)}
 .steps-list li.ev::before{background:var(--coral)}.steps-list li.fin::before{background:var(--teal)}
-.steps-list b{display:block;margin-bottom:2px}
+.steps-list b{font-weight:700}
 details.acc{background:var(--paper);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden}
 details.acc+details.acc{margin-top:10px}
 details.acc>summary{list-style:none;cursor:pointer;padding:20px 56px 20px 24px;font-weight:700;font-size:17.5px;position:relative}
@@ -495,3 +496,5 @@ body.participant .feed .situation-card p{font-size:clamp(17px,1.4vw,21px)}
 }
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 @media print{.site-header,.site-footer,.skip{display:none!important}body{background:#fff}}
+.split .section-head h2{font-size:clamp(26px,2.8vw,38px)}
+@media (max-width:640px){.page-hero .hero-deco{display:none}}

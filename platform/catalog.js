@@ -1,23 +1,77 @@
+/* ПЕДАГОГ · каталог ситуаций (library.html) и справочник ролей и ресурсов (cards.html). */
+(function(){
 'use strict';
-(() => {
- const D=globalThis.PEDAGOG_DATA,M=globalThis.PEDAGOG_META,app=document.querySelector('#app');
- const e=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const isCases=document.body.dataset.page==='library',labels={situations:'Ситуации',roles:'Роли',resources:'Ресурсы',turns:'Повороты',reflections:'Рефлексия'};
- const params=new URLSearchParams(location.search);
- let kind=isCases?'situations':(['roles','resources','turns','reflections'].includes(params.get('type'))?params.get('type'):'roles');
- const opts=arr=>arr.map(x=>`<option>${e(x)}</option>`).join('');
- app.innerHTML=`<div class="page-intro"><p class="eyebrow">Единая колода · полные тексты</p><h1>${isCases?'Библиотека ситуаций':'Роли, ресурсы и новые ходы'}</h1><p class="lead">${isCases?'Выберите знакомую профессиональную задачу. В каждом паспорте — контекст, интересы сторон, цель, совместимые роли и опоры для обсуждения.':'Роль задаёт точку зрения, ресурс помогает изменить действие, поворот — проверить решение в новых условиях. Вопросы рефлексии связывают опыт с практикой.'}</p></div>
- ${isCases?'':`<div class="toolbar" aria-label="Категории колоды">${Object.entries(labels).filter(([k])=>k!=='situations').map(([k,n])=>`<button data-kind="${k}" aria-pressed="${k===kind}">${n} · ${D[k].length}</button>`).join('')}</div>`}
- <div class="filters"><label>Поиск по коду, названию и тексту<input id="query" type="search" placeholder="Например, родитель или С-14" maxlength="150"></label><label>Тема<select id="theme"><option value="">Все темы</option>${opts(M.themes)}</select></label><label>Сложность<select id="level"><option value="">Все уровни</option>${opts(M.levels)}</select></label></div>
- <div class="actions"><button type="button" id="reset-filters">Сбросить фильтры</button></div><p class="result-summary" id="count" role="status" aria-live="polite"></p><div id="cards" class="catalog-grid"></div><div class="note">Темы и уровни — редакционные ориентиры для выбора материала. «Углублённый» означает больше условий и интересов для согласования, а не оценку профессионализма участника. Активная колода содержит 64 карты редакции 29.10.2026; С-07 исключена автором.</div>`;
- const $=id=>document.getElementById(id),find=(k,id)=>D[k].find(c=>c.id===id);
- $('query').value=params.get('q')||'';$('theme').value=params.get('theme')||'';$('level').value=params.get('level')||'';
- function related(c){return D.situations.filter(s=>kind==='roles'?s.roleSets.flat().includes(c.id):kind==='resources'?s.resourceIds.includes(c.id):kind==='turns'?s.turnIds.includes(c.id):true);}
- function caseHTML(c){return `<article class="catalog-card" id="${e(c.id)}"><div class="metadata"><span class="tag">${e(c.id)}</span><span class="category">${e(c.theme)} · ${e(c.difficulty)}</span></div><h2>${e(c.title)}</h2><p>${e(c.text)}</p><p><strong>Дилемма:</strong> ${e(c.dilemma)}</p><p><strong>Задача:</strong> ${e(c.goal)}</p><details><summary>Полный паспорт и совместимость</summary><p><strong>Начальная реплика:</strong> ${e(c.opening)}</p><p><strong>Ведущему:</strong> ${e(c.note)}</p><p><strong>Формат:</strong> ${c.mode==='discussion'?'Только совет коллег, без инсценировки.':'Короткая сцена или разбор реплик за столом.'}</p><h3>Места в сцене</h3><ul>${c.seats.map((st,j)=>`<li><strong>${e(st.who)}.</strong> ${e(st.brief)} <em>${e(st.ask)}</em></li>`).join('')}</ul><p><strong>Составы ролей:</strong> ${c.roleSets.map(rs=>rs.map(id=>`<a href="cards.html?type=roles#${encodeURIComponent(id)}">${e(find('roles',id).title)}</a>`).join(' + ')).join('; ')}. Остальные участники — <a href="cards.html?type=roles#%D0%A0%D0%BE-09">наблюдатели</a>.</p><h3>Совместимые ресурсы</h3><ul>${c.resourceIds.map(id=>`<li><a href="cards.html?type=resources#${encodeURIComponent(id)}">${e(id)} · ${e(find('resources',id).title)}</a></li>`).join('')}</ul><p><strong>Допустимые повороты:</strong> ${c.turnIds.map(id=>`<a href="cards.html?type=turns#${encodeURIComponent(id)}">${e(id)}</a>`).join(', ')}. По желанию группы, только в форматах 40 и 90 минут.</p><h3>Рефлексия</h3><ol>${c.debrief.map(t=>`<li>${e(t)}</li>`).join('')}</ol><p><strong>Направления практики:</strong> ${c.competencies.map(e).join(', ')}.</p></details><div class="actions"><a class="button primary" href="game.html?case=${encodeURIComponent(c.id)}">Играть эту ситуацию →</a><a class="button" href="print.html?case=${encodeURIComponent(c.id)}">Подготовить печать</a></div></article>`;}
- function miniHTML(c){const cases=related(c);return `<article class="catalog-card" id="${e(c.id)}"><span class="tag">${e(c.id)} · ${e(labels[kind])}</span><h2>${e(c.title)}</h2><p>${e(c.text)}</p><details><summary>${kind==='reflections'?'Для разбора любой ситуации':'Где применяется · '+cases.length+' ситуаций'}</summary><ul>${cases.map(s=>`<li><a href="library.html#${encodeURIComponent(s.id)}">${e(s.id)} · ${e(s.title)}</a></li>`).join('')}</ul></details><div class="actions"><a class="button" href="print.html?card=${encodeURIComponent(c.id)}">В печатный набор</a></div></article>`;}
- function render(){const q=$('query').value.trim().toLocaleLowerCase('ru'),theme=$('theme').value,level=$('level').value;const list=D[kind].filter(c=>JSON.stringify(c).toLocaleLowerCase('ru').includes(q)&&(kind==='situations'?(!theme||c.theme===theme)&&(!level||c.difficulty===level):related(c).some(s=>(!theme||s.theme===theme)&&(!level||s.difficulty===level))));$('count').textContent=`Найдено: ${list.length} из ${D[kind].length}. ${labels[kind]}.`;$('cards').innerHTML=list.length?list.map(c=>isCases?caseHTML(c):miniHTML(c)).join(''):'<p class="empty">По этим условиям карточек нет. Измените запрос или выберите все темы.</p>';document.querySelectorAll('[data-kind]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.kind===kind));const p=new URLSearchParams();if(!isCases)p.set('type',kind);if(q)p.set('q',q);if(theme)p.set('theme',theme);if(level)p.set('level',level);history.replaceState(null,'',location.pathname+(p.size?'?'+p:'')+location.hash);}
- ['query','theme','level'].forEach(id=>$(id).addEventListener(id==='query'?'input':'change',render));document.querySelectorAll('[data-kind]').forEach(b=>b.onclick=()=>{kind=b.dataset.kind;history.replaceState(null,'',location.pathname);render();});render();
- $('reset-filters').onclick=()=>{$('query').value='';$('theme').value='';$('level').value='';history.replaceState(null,'',location.pathname);render();$('query').focus();};
- function revealCard(){let id;try{id=decodeURIComponent(location.hash.slice(1));}catch{return;}if(!id)return;const targetKind=Object.keys(labels).find(k=>D[k].some(c=>c.id===id));if(!targetKind||(isCases?targetKind!=='situations':targetKind==='situations'))return;if(kind!==targetKind||!document.getElementById(id)){$('query').value='';$('theme').value='';$('level').value='';kind=targetKind;render();}const target=document.getElementById(id);if(target){target.querySelector('details').open=true;target.tabIndex=-1;target.focus({preventScroll:true});target.scrollIntoView({block:'start'});}}
- addEventListener('hashchange',revealCard);revealCard();
+const D=globalThis.PEDAGOG_DATA,M=globalThis.PEDAGOG_META,E=globalThis.PEDAGOG_SESSION,A=globalThis.PEDAGOG_ART;
+const app=document.getElementById('app');if(!app||!D)return;
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const T=id=>D.roleTypes.find(t=>t.id===id);
+const accent={'Урок и мотивация':'#3B4A99','Оценивание':'#6874C2','Семья и школа':'#E0A64E','Поддержка ученика':'#2A958E','Отношения и воспитание':'#E8673F','Коллеги и наставничество':'#8366B0','Нагрузка и организация':'#28336E'};
+const page=document.body.dataset.page;
+const enterLabel=n=>n===0?'С начала':`С обстоятельством ${n}`;
+const sub=`<nav class="subnav" aria-label="Материалы игры"><a href="library.html"${page==='library'?' aria-current="page"':''}>Ситуации</a><a href="cards.html"${page==='cards'?' aria-current="page"':''}>Роли, ресурсы, рефлексия</a><a href="methods.html">Помощь ведущему</a></nav>`;
+
+function roleCard(c,x){const t=T(x.type);return `<article class="role-card" style="--c:${t.color}"><header>${A.badge(x.type,'lg')}<div><b>${esc(x.label)}</b><small>${esc(t.title)} · ${enterLabel(x.enters)}</small></div></header>
+<dl><dt>Позиция</dt><dd>${esc(x.position)}</dd><dt>Что знает</dt><dd>${esc(x.knows)}</dd><dt>Чего хочет</dt><dd>${esc(x.wants)}</dd><dt>Переживает</dt><dd>${esc(x.feels)}</dd><dt>Отвечает за</dt><dd>${esc(x.zone)}</dd></dl><div class="ask">${esc(x.ask)}</div></article>`;}
+function eventCard(c,ev,n){return `<article class="event-card"><div class="num"><span>${n}</span></div><p class="pill coral" style="justify-self:start">Обстоятельство ${n}</p><h3>${esc(ev.title)}</h3><p>${esc(ev.text)}</p><p class="enter">${ev.adds.map(k=>{const x=c.cast.find(r=>r.key===k);return A.badge(x.type,'sm')+' '+esc(x.label);}).join(' · ')} — входит в игру</p><p class="q">${esc(ev.ask)}</p></article>`;}
+function caseCard(c){const order=E.castOrder(c);return `<a class="case-card" id="${esc(c.id)}" href="library.html?case=${encodeURIComponent(c.id)}" style="--accent:${accent[c.theme]||'#3B4A99'}"><div class="meta"><span class="pill soft">${esc(c.theme)}</span><span class="id">${esc(c.id)}</span></div><h3>${esc(c.title)}</h3><p>${esc(c.text)}</p><div class="foot"><span class="badges">${order.map(x=>A.badge(x.type,'sm')).join('')}</span><small>${order.length} ролей · ${esc(c.grade)}</small></div></a>`;}
+
+function passport(c){
+  const first=c.cast.filter(x=>x.enters===0),later=c.cast.filter(x=>x.enters>0);
+  document.title=c.title+' — ПЕДАГОГ';
+  app.innerHTML=`<section class="page-hero"><div class="wrap"><p class="eyebrow">${esc(c.id)} · ${esc(c.theme)} · ${esc(c.level)} уровень</p><h1>${esc(c.title)}</h1><p class="lead">${esc(c.grade)} · ${c.cast.length} ролей · 3 обстоятельства</p>
+  <div class="actions"><a class="btn white" href="game.html?duration=40&amp;case=${encodeURIComponent(c.id)}">Играть 40 минут</a><a class="btn ghost-light" href="game.html?duration=15&amp;case=${encodeURIComponent(c.id)}">15 минут</a><a class="btn ghost-light" href="print.html?case=${encodeURIComponent(c.id)}">Печатный комплект</a></div>
+  <nav class="subnav"><a href="library.html">← Все ситуации</a></nav></div><div class="hero-deco">${A.pageDeco(E.castOrder(c).slice(0,3).map(x=>x.type))}</div></section>
+  <section class="page-body"><div class="wrap passport">
+   <div style="display:grid;gap:22px">
+    <h2 style="font-size:28px;margin:0">Первые роли</h2>
+    ${first.map(x=>roleCard(c,x)).join('')}
+    <details class="spoiler"><summary>Для ведущего: как развивается ситуация — ${later.length} ролей и 3 обстоятельства. Не показывайте участникам заранее.</summary><div class="inner">
+     ${c.events.map((ev,i)=>eventCard(c,ev,i+1)+later.filter(x=>x.enters===i+1).map(x=>roleCard(c,x)).join('')).join('')}
+    </div></details>
+    <div class="panel flat"><h3>Вопросы для рефлексии</h3><ul class="qs">${c.debrief.map(q=>`<li>${esc(q)}</li>`).join('')}</ul></div>
+    <div class="note-card"><h3>Границы ситуации</h3><p style="margin:0">${esc(c.note)}</p></div>
+   </div>
+   <aside style="display:grid;gap:18px;align-self:start" class="situation-aside">
+    <div class="situation-card"><p class="pill" style="color:#fff;border-color:rgba(255,255,255,.45)">Исходная ситуация</p><h2 style="font-size:26px;margin-top:14px">${esc(c.title)}</h2><p>${esc(c.text)}</p><p class="opening">${esc(c.opening)}</p>
+     <dl><dt>Дилемма</dt><dd>${esc(c.dilemma)}</dd><dt>Что нужно получить</dt><dd>${esc(c.goal)}</dd><dt>Роли по порядку входа</dt><dd><span class="badges">${E.castOrder(c).map(x=>A.badge(x.type,'sm')).join('')}</span></dd></dl></div>
+    <div class="panel flat"><h3>Ресурсы для поиска решения</h3><div style="display:grid;gap:10px">${c.resourceIds.map(id=>{const r=D.resources.find(x=>x.id===id);return `<div class="res-card"><span class="id">${r.id}</span><h3>${esc(r.title)}</h3><p>${esc(r.text)}</p></div>`;}).join('')}</div></div>
+   </aside></div></section>`;
+}
+
+function list(){
+  const q=new URLSearchParams(location.search);
+  const st={theme:q.get('theme')||'',level:'',role:'',text:''};
+  app.innerHTML=`<section class="page-hero"><div class="wrap"><p class="eyebrow">Библиотека</p><h1><span class="dim">${D.situations.length} ситуаций</span> из школьной жизни</h1><p class="lead">В каждой — пять или шесть ролей, которые входят в разговор постепенно, и три обстоятельства, меняющие картину. Откройте паспорт, чтобы подготовиться, или сразу начните игру.</p>${sub}</div><div class="hero-deco">${A.pageDeco()}</div></section>
+  <section class="page-body"><div class="wrap">
+   <div class="filters"><input type="search" id="q" placeholder="Поиск: отметка, чат, замена…" aria-label="Поиск по ситуациям">
+    <select id="lvl" aria-label="Уровень"><option value="">Любой уровень</option>${M.levels.map(l=>`<option>${l}</option>`).join('')}</select>
+    <select id="role" aria-label="Роль в ситуации"><option value="">Любая роль</option>${D.roleTypes.map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('')}</select></div>
+   <div class="chips" role="group" aria-label="Темы" style="margin-bottom:26px">${['',...M.themes].map(t=>`<button class="chip" data-theme="${esc(t)}" aria-pressed="${t===st.theme}">${t?esc(t):'Все темы'}</button>`).join('')}</div>
+   <p class="muted small" id="count" aria-live="polite"></p><div class="case-grid" id="grid"></div></div></section>`;
+  const $=id=>document.getElementById(id);
+  function draw(){const items=D.situations.filter(c=>(!st.theme||c.theme===st.theme)&&(!st.level||c.level===st.level)&&(!st.role||c.cast.some(x=>x.type===st.role))&&(!st.text||(c.title+' '+c.text+' '+c.cast.map(x=>x.label).join(' ')).toLocaleLowerCase('ru').includes(st.text)));
+    $('grid').innerHTML=items.map(caseCard).join('')||'<p>Ничего не найдено. Сбросьте фильтры.</p>';$('count').textContent=`Показано ${items.length} из ${D.situations.length}`;}
+  $('q').oninput=e=>{st.text=e.target.value.trim().toLocaleLowerCase('ru');draw();};
+  $('lvl').onchange=e=>{st.level=e.target.value;draw();};$('role').onchange=e=>{st.role=e.target.value;draw();};
+  app.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{st.theme=b.dataset.theme;app.querySelectorAll('.chip').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));draw();});
+  draw();
+  const legacy=location.hash.slice(1);if(legacy){const el=document.getElementById(decodeURIComponent(legacy));if(el)el.scrollIntoView();}
+}
+
+function cards(){
+  const usage=id=>D.situations.filter(c=>c.cast.some(x=>x.type===id)).length;
+  app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Справочник</p><h1><span class="dim">Роли,</span> ресурсы и рефлексия</h1><p class="lead">Одиннадцать допустимых ролей, карточка наблюдателя, пятнадцать ресурсов для поиска решения и десять вопросов рефлексии — общие для онлайн-игры и печатного комплекта.</p>${sub}</div><div class="hero-deco">${A.pageDeco(['Ро-06','Ро-07','Ро-11'])}</div></section>
+  <section class="page-body"><div class="wrap">
+   <div class="section-head"><p class="eyebrow">Роли</p><h2>Кто участвует в ситуациях</h2><p class="lead">В каждой ситуации — 5–6 ролей из этого списка. Тьютор, представитель родительского сообщества и педагог дополнительного образования в игру не входят. Медиатор появляется только там, где его участие обосновано.</p></div>
+   <div class="grid two">${D.roleTypes.map(t=>`<article class="role-card" id="${t.id}" style="--c:${t.color}"><header>${A.badge(t.id,'lg')}<div><b>${esc(t.title)}</b><small>${t.id} · в ${usage(t.id)} ситуациях</small></div></header><p style="margin:0">${esc(t.text)}</p></article>`).join('')}
+    <article class="role-card" id="${D.observer.id}" style="--c:#676C90"><header><span class="badge lg" style="--c:#fff;--i:#3B4A99;box-shadow:inset 0 0 0 2px #C9CCEB">НБ</span><div><b>${esc(D.observer.title)}</b><small>Для свободных участников</small></div></header><p style="margin:0">${esc(D.observer.text)}</p></article></div>
+   <div class="section-head" style="margin-top:70px"><p class="eyebrow">Ресурсы</p><h2>Инструменты для поиска решения</h2><p class="lead">На этапе «Поиск решения» команда по желанию берёт одну карточку как инструмент. К каждой ситуации предложены подходящие.</p></div>
+   <div class="grid three">${D.resources.map(r=>`<div class="res-card" id="${r.id}"><span class="id">${r.id}</span><h3>${esc(r.title)}</h3><p>${esc(r.text)}</p></div>`).join('')}</div>
+   <div class="section-head" style="margin-top:70px"><p class="eyebrow">Рефлексия</p><h2>Вопросы после выхода из ролей</h2></div>
+   <div class="grid three">${D.reflections.map(r=>`<div class="res-card refl" id="${r.id}"><span class="id">${r.id}</span><h3>${esc(r.title)}</h3><p>${esc(r.text)}</p></div>`).join('')}</div>
+  </div></section>`;
+}
+
+if(page==='cards')cards();
+else{const id=new URLSearchParams(location.search).get('case');const c=D.situations.find(x=>x.id===id);if(c)passport(c);else list();}
 })();

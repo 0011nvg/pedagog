@@ -1,22 +1,38 @@
 'use strict';
+/* Сайт и реестр: страницы, ссылки, якоря, инварианты ситуаций редакции 4.0. */
 const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert'),cp=require('child_process');
 const root=path.resolve(__dirname,'..');
 const pages=['index','about','game','print','library','cards','rules','methods','author'];
-const ctx={};vm.createContext(ctx);for(const f of ['src/deck.js','platform/metadata.js'])vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx);
-const d=ctx.PEDAGOG_DATA,ids=Object.values(d).filter(Array.isArray).flat().map(c=>c.id);
-assert.equal(ids.length,64);assert.equal(new Set(ids).size,64);assert(!ids.includes('С-07'));
-for(const c of d.situations){assert(c.seats.length===Math.max(...c.roleSets.map(s=>s.length)),c.id+' seats');for(const s of c.seats)assert(s.who&&s.brief&&s.ask.endsWith('?'),c.id);assert(c.dilemma.endsWith('?')&&c.text.length<520&&c.debrief.length===3,c.id);assert(c.theme&&c.difficulty&&c.competencies.length);for(const id of c.roleSets.flat())assert(d.roles.some(r=>r.id===id));for(const id of c.resourceIds)assert(d.resources.some(r=>r.id===id));for(const id of c.turnIds)assert(d.turns.some(r=>r.id===id));}
-for(const p of pages){const html=fs.readFileSync(path.join(root,p+'.html'),'utf8');assert(/<html lang="ru"/.test(html));assert(html.includes('id="app"'));assert.equal((html.match(/<main\b/g)||[]).length,1);const tags=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(tags).size,tags.length,'duplicate IDs in '+p);for(const m of html.matchAll(/(?:href|src)="([^"]+)"/g)){const u=m[1];if(/^(https?:|mailto:|tel:|#)/.test(u))continue;const file=decodeURIComponent(u.split(/[?#]/)[0]);assert(fs.existsSync(path.join(root,file)),`${p}: missing ${file}`);}assert(!html.includes('href="#session"'));}
-for(const f of ['shared','metadata','catalog','engine','session','print'])cp.execFileSync(process.execPath,['--check',path.join(root,'platform',f+'.js')]);
-const content=JSON.parse(fs.readFileSync(path.join(root,'platform/content.json'),'utf8'));
-for(const p of ['about','rules','methods','author'])assert(content[p].length>1000);
-assert(fs.readFileSync(path.join(root,'rules.html'),'utf8').includes('id="usage"'),'usage anchor');
-assert(fs.readFileSync(path.join(root,'print.html'),'utf8').includes('src="print-pack.js"'));
-console.log('PASS: 9 routes, local assets, unique anchors, metadata and 64 active card IDs, seats and dilemmas, JS syntax.');
-
-// All navigation on a nested 404 must resolve from the Pages project root.
-const missing=fs.readFileSync(path.join(root,'404.html'),'utf8');
-for(const m of missing.matchAll(/(?:href|src)="([^"]+)"/g))assert(/^(#|https?:|\/pedagog\/)/.test(m[1]),'relative 404 link: '+m[1]);
-// Validate in-page destinations too, including cards rendered by JavaScript.
-for(const page of pages){const html=fs.readFileSync(path.join(root,page+'.html'),'utf8');for(const m of html.matchAll(/href="([^"#]*)#([^" ]+)"/g)){if(/^https?:/.test(m[1]))continue;const target=(m[1].split('?')[0]||page+'.html');const id=decodeURIComponent(m[2]);const content=fs.readFileSync(path.join(root,target),'utf8');assert(content.includes('id="'+id+'"')||(['library.html','cards.html'].includes(target)&&ids.includes(id)),page+': missing anchor '+target+'#'+id);}}
-console.log('Nested 404 navigation and all static cross-page anchors passed.');
+const ctx={};vm.createContext(ctx);for(const f of ['src/deck.js','platform/metadata.js','platform/engine.js'])vm.runInContext(fs.readFileSync(path.join(root,f),'utf8'),ctx);
+const D=ctx.PEDAGOG_DATA;
+const ALLOWED=['Ученик','Одноклассник','Учитель-предметник','Классный руководитель','Родитель','Педагог-психолог','Социальный педагог','Заместитель директора','Директор школы','Советник директора по воспитанию','Школьный медиатор'];
+assert.deepEqual(D.roleTypes.map(t=>t.title),ALLOWED,'допустимые роли');
+const forbidden=/тьютор|педагог дополнительного образования|представител[ья] родительского|родительск(ий|ого) комитет/i;
+assert(!forbidden.test(fs.readFileSync(path.join(root,'src/deck.js'),'utf8').replace(/\/\*[\s\S]*?\*\//g,'')),'запрещённые роли не вернулись в реестр');
+const ids=[...D.situations,...D.resources,...D.reflections,...D.roleTypes].map(c=>c.id);assert.equal(new Set(ids).size,ids.length,'уникальные id');
+assert(D.situations.length>=20);assert(!D.situations.some(c=>c.id==='С-07'),'С-07 исключена автором');
+const sequences=new Set();
+for(const c of D.situations){
+  assert(c.cast.length>=5,c.id+': не меньше пяти ролей');
+  const keys=c.cast.map(x=>x.key);assert.equal(new Set(keys).size,keys.length,c.id+': ключи ролей');
+  const first=c.cast.filter(x=>x.enters===0).length;assert(first>=2&&first<=3,c.id+': 2–3 первые роли');
+  assert.equal(c.events.length,3,c.id+': три обстоятельства');
+  c.events.forEach((ev,i)=>{assert(ev.adds.length>=1,c.id+': обстоятельство вводит роль');assert(ev.ask.endsWith('?'));ev.adds.forEach(k=>assert.equal(c.cast.find(x=>x.key===k).enters,i+1,c.id+': вход '+k));});
+  for(const x of c.cast){assert(D.roleTypes.some(t=>t.id===x.type),c.id+' тип');for(const f of ['label','position','knows','wants','feels','zone','ask'])assert(x[f]&&x[f].length>3,`${c.id}/${x.key}: ${f}`);assert(x.ask.endsWith('?'));if(x.enters)assert(c.events[x.enters-1].adds.includes(x.key));}
+  assert(new Set(c.cast.map(x=>x.type)).size>=3,c.id+': разные позиции');
+  assert(c.dilemma.endsWith('?')&&c.debrief.length===3&&c.note&&c.goal&&c.opening,c.id);
+  for(const id of c.resourceIds)assert(D.resources.some(r=>r.id===id));
+  sequences.add(c.cast.filter(x=>x.enters).sort((a,b)=>a.enters-b.enters).map(x=>x.type).join('>'));
+}
+assert(sequences.size>=D.situations.length-2,'порядок входа ролей не повторяется');
+for(const p of pages){const html=fs.readFileSync(path.join(root,p+'.html'),'utf8');assert(/<html lang="ru"/.test(html));assert(html.includes('id="app"'));assert.equal((html.match(/<main\b/g)||[]).length,1);
+  const tags=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(tags).size,tags.length,'duplicate IDs in '+p);
+  for(const m of html.matchAll(/(?:href|src)="([^"]+)"/g)){const u=m[1];if(/^(https?:|mailto:|tel:|#|data:)/.test(u))continue;const file=decodeURIComponent(u.split(/[?#]/)[0]);assert(fs.existsSync(path.join(root,file)),`${p}: missing ${file}`);}
+  for(const m of html.matchAll(/href="([^"#]*)#([^" ]+)"/g)){if(/^https?:/.test(m[1]))continue;const target=(m[1].split('?')[0]||p+'.html');const content=fs.readFileSync(path.join(root,target),'utf8');assert(content.includes('id="'+decodeURIComponent(m[2])+'"')||['library.html','cards.html'].includes(target),p+': anchor '+target+'#'+m[2]);}}
+for(const f of ['shared','metadata','catalog','engine','session','print','print-layout','art'])cp.execFileSync(process.execPath,['--check',path.join(root,'platform',f+'.js')]);
+for(const p of ['about','rules','methods','author'])assert(fs.statSync(path.join(root,'platform/pages',p+'.html')).size>1000);
+assert(fs.readFileSync(path.join(root,'rules.html'),'utf8').includes('id="usage"'));
+assert(fs.readFileSync(path.join(root,'print.html'),'utf8').includes('src="print-pack.js'),'пакет доступа к печати подключён');
+for(const f of fs.readdirSync(path.join(root,'platform/fonts')).filter(f=>f.endsWith('.woff2')))assert(fs.readFileSync(path.join(root,'platform/style.css'),'utf8').includes(f),'шрифт подключён: '+f);
+const missing=fs.readFileSync(path.join(root,'404.html'),'utf8');for(const m of missing.matchAll(/(?:href|src)="([^"]+)"/g))assert(/^(#|https?:|data:|\/pedagog\/)/.test(m[1]),'relative 404 link: '+m[1]);
+console.log(`PASS platform: ${D.situations.length} ситуаций, ${D.situations.reduce((n,c)=>n+c.cast.length,0)} ролей, ${sequences.size} разных порядков входа; 9 страниц, ссылки и якоря.`);

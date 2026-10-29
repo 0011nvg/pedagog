@@ -1,196 +1,207 @@
-/* ПЕДАГОГ · интерфейс онлайн-игры. Один экран ведущего; состояние — в localStorage этого браузера. */
+/* ПЕДАГОГ · интерфейс онлайн-игры (редакция 4.0). Один экран ведущего; состояние — в localStorage этого браузера.
+   Ситуация раскрывается по этапам: новые обстоятельства и роли не показываются раньше своего этапа. */
 (function(){
 'use strict';
-const E=globalThis.PEDAGOG_SESSION,D=globalThis.PEDAGOG_DATA,app=document.getElementById('app');
+const E=globalThis.PEDAGOG_SESSION,D=globalThis.PEDAGOG_DATA,A=globalThis.PEDAGOG_ART,app=document.getElementById('app');
 if(!app||!E)return;
-const KEY='pedagog-platform-session-v4',OLD_KEY='pedagog-platform-session-v3';
-let stored=null,storageConflict=false,state=null,tick=Date.now(),warning='',pauseOpen=false,reflectCard=null;
+const KEY='pedagog-platform-session-v5',OLD_KEYS=['pedagog-platform-session-v4','pedagog-platform-session-v3'];
 const query=new URLSearchParams(location.search);
-const setup={people:6,duration:40,caseId:'С-16'};
+const setup={people:6,duration:40,caseId:'С-01',theme:''};
 {const d=Number(query.get('duration'));const mapped=({20:15,45:40,60:40,120:90})[d]||d;if(E.DURATIONS.includes(mapped))setup.duration=mapped;
- const c=query.get('case');if(E.by('situations',c))setup.caseId=c;else if(setup.duration===15)setup.caseId='С-16';}
+ const c=query.get('case');if(E.by('situations',c))setup.caseId=c;}
+let state=null,stored=null,warning='',modal=null,lastTick=Date.now(),pauseOpen=false,announce='';
 
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const opt=(value,label,selected)=>`<option value="${esc(value)}"${String(value)===String(selected)?' selected':''}>${esc(label)}</option>`;
-const btn=(id,label,cls='',extra='')=>`<button type="button" id="${id}" class="${cls}" ${extra}>${label}</button>`;
 const mmss=sec=>{const n=Math.max(0,Math.ceil(sec));return String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');};
-const minutesWord=n=>{const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'минут':b===1?'минута':b>1&&b<5?'минуты':'минут';};
-const peopleWord=n=>{const a=n%100,b=n%10;return a>10&&a<20?'человек':b>1&&b<5?'человека':'человек';};
-const LENS={'Ро-01':'наставник','Ро-02':'начинающий педагог','Ро-03':'родитель','Ро-04':'завуч','Ро-05':'классный руководитель','Ро-06':'опытный учитель','Ро-07':'школьный психолог','Ро-08':'ученик'};
-function setLabel(c,i){const set=c.roleSets[i],lens=c.roleSets.map(x=>x.length);if(new Set(lens).size>1)return `${set.length} места: `+set.map((_,j)=>c.seats[j].who).join(', ');const diff=set.map((_,j)=>j).filter(j=>c.roleSets.some(x=>x[j]!==set[j]));return diff.map(j=>`${c.seats[j].who} — ${LENS[set[j]]}`).join(' · ');}
-const NOTE_LABELS={first:'Первый вариант',observed:'Что заметили',retry:'Второй вариант',consequences:'Последствия',decision:'Решение',reflection:'Общий вывод'};
-const NOTE_HINTS={first:'Ключевые слова первой попытки: что сказали и сделали',observed:'Одна точная реплика · что она изменила · вопрос ко второй попытке',retry:'Что изменили во второй попытке и как ответили',consequences:'Вариант 1: завтра / через месяц. Вариант 2: завтра / через месяц. Что неизвестно',decision:'Что делаем · кто · к какому сроку · как поймём, что получилось',reflection:'Общий вывод группы — только если все согласны его записать',meeting:'Что общего в решениях раундов? Что группа берёт в работу?'};
+const word=(n,a,b,c)=>{const x=Math.abs(n)%100,y=x%10;return x>10&&x<20?c:y===1?a:y>1&&y<5?b:c;};
+const T=id=>D.roleTypes.find(t=>t.id===id);
+const badge=(type,cls='')=>A.badge(type,cls);
+const roleOf=(c,key)=>c.cast.find(x=>x.key===key);
+const enterLabel=n=>n===0?'с начала':`с обстоятельством ${n}`;
+const host=()=>state&&state.view==='host';
 
-function say(message,focus=false){warning=message;const el=$('game-status');if(el){el.textContent=message;el.hidden=!message;if(focus){el.tabIndex=-1;el.focus({preventScroll:true});el.scrollIntoView({block:'nearest'});}}}
-function conflict(){storageConflict=true;state?.rounds.forEach(r=>r.running=false);say('Эта встреча изменена в другой вкладке. Чтобы не затереть записи, эта вкладка больше не сохраняет. Скачайте итоги и обновите страницу.');clock();}
-function save(){if(!state||storageConflict)return;try{if(localStorage.getItem(KEY)!==stored){conflict();return;}const next=JSON.stringify(state);localStorage.setItem(KEY,next);stored=next;}catch{say('Автосохранение недоступно в этом браузере. Перед закрытием страницы скачайте итоги.');}}
-function download(content,name,type='application/json'){const url=URL.createObjectURL(new Blob([content],{type})),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild?.(a);a.click();a.remove?.();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-function stamp(){const d=new Date();return d.toISOString().slice(0,10);}
-function advanceClock(){const now=Date.now(),dt=Math.max(0,(now-tick)/1000);tick=now;if(!state||state.completed)return;const r=E.current(state).round;if(r.running){r.remaining=Math.max(0,r.remaining-dt);if(!r.remaining){r.running=false;say('Время этапа вышло. Дайте закончить мысль и переходите дальше — или добавьте минуту.');}}}
+/* ---------- Хранение ---------- */
+function load(){try{const raw=localStorage.getItem(KEY);if(raw){stored=raw;state=E.restore(raw);}}catch(e){state=null;warning='Сохранённую встречу открыть не удалось: '+e.message;}}
+function save(){if(!state)return;try{localStorage.setItem(KEY,JSON.stringify(state));stored=null;}catch{warning='Браузер не сохраняет данные (приватный режим?). Скачайте итоги вручную перед закрытием вкладки.';}}
+function oldSave(){try{for(const k of OLD_KEYS){const v=localStorage.getItem(k);if(v)return {key:k,value:v};}}catch{}return null;}
+function download(name,text,type='text/plain'){const url=URL.createObjectURL(new Blob([text],{type:type+';charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+
+/* ---------- Экран настройки ---------- */
+function stagePlan(minutes){return E.FORMATS[minutes].rounds.map((r,i)=>`<div class="table-wrap"><table><caption>${E.FORMATS[minutes].rounds.length>1?`Раунд ${i+1} · `:''}${r.reduce((a,x)=>a+x[1],0)} мин</caption><tbody>${r.map(([k,m],j)=>`<tr><td>${j+1}. ${esc(E.STAGES[k].title)}</td><td class="num">${m}</td></tr>`).join('')}</tbody></table></div>`).join('');}
+function renderSetup(){
+  document.body.classList.remove('participant');
+  const c=E.by('situations',setup.caseId),teams=E.teamsFor(setup.people),old=oldSave();
+  const cases=D.situations.filter(x=>!setup.theme||x.theme===setup.theme);
+  const themes=[...new Set(D.situations.map(x=>x.theme))];
+  app.innerHTML=`<section class="page-hero" style="padding-bottom:clamp(40px,5vw,64px)"><div class="wrap"><p class="eyebrow">Онлайн-игра</p><h1><span class="dim">Подготовка</span> встречи</h1><p class="lead">Три шага: время, число участников и ситуация. Дальше сайт распределит роли и поведёт по этапам — новые обстоятельства откроются в нужный момент.</p></div><div class="hero-deco">${A.pageDeco(E.castOrder(c).slice(0,3).map(x=>x.type))}</div></section>
+  <div class="wrap game-shell">
+  ${warning?`<p class="note-card" role="alert">${esc(warning)}</p>`:''}
+  ${stored&&!state?`<div class="note-card"><h3>Прежнее сохранение</h3><p>Сохранённую встречу нельзя продолжить в этой версии. <button class="btn small" id="dl-stored">Скачать её файл</button></p></div>`:''}
+  ${old?`<div class="note-card teal" style="margin-bottom:20px"><h3>Встреча прежней редакции</h3><p>В браузере осталась встреча, начатая до обновления игры 30.10.2026. Продолжить её нельзя: изменились роли и ход раунда. Записи можно сохранить файлом.</p><div class="actions" style="margin-top:8px"><button class="btn small" id="dl-old">Скачать записи</button><button class="btn small" id="rm-old">Удалить из браузера</button></div></div>`:''}
+  <form class="setup" id="setup-form" novalidate><div class="panel">
+   <section class="setup-step"><h3><span>1</span>Сколько у вас времени?</h3><div class="dur" role="group" aria-label="Формат">${E.DURATIONS.map(m=>`<button type="button" id="preset-${m}" data-dur="${m}" aria-pressed="${m===setup.duration}"><b>${m}</b><span>${esc(E.FORMATS[m].title)}</span><small>${esc(E.FORMATS[m].people)}</small></button>`).join('')}</div></section>
+   <section class="setup-step"><h3><span>2</span>Сколько участников?</h3><div class="stepper"><button type="button" id="ppl-minus" aria-label="Меньше участников">−</button><input id="people" inputmode="numeric" type="number" min="1" max="40" value="${setup.people}" aria-label="Число участников"><button type="button" id="ppl-plus" aria-label="Больше участников">+</button></div>
+    <p class="small muted" style="margin:0">${setup.people===1?'Один участник: вы последовательно посмотрите на ситуацию глазами каждой роли.':teams>1?`${teams} ${word(teams,'команда','команды','команд')} по 4–6 человек, все разбирают одну ситуацию по общему таймеру. Нужен помощник у каждого стола.`:setup.people<c.cast.length?`Ролей в ситуации — ${c.cast.length}, участников меньше: кто-то поведёт две роли (вторую — с момента её входа). Можно выбрать режим «совет коллег».`:`Каждому — своя роль, остальные ${setup.people-c.cast.length>0?`(${setup.people-c.cast.length}) — наблюдатели`:'роли заняты все'}.`}</p></section>
+   <section class="setup-step"><h3><span>3</span>Какую ситуацию разберём?</h3>
+    <div class="chips" role="group" aria-label="Темы">${['',...themes].map(t=>`<button type="button" class="chip" data-theme="${esc(t)}" aria-pressed="${t===setup.theme}">${t?esc(t):'Все темы'}</button>`).join('')}</div>
+    <label class="sr" for="case-select">Ситуация</label><select id="case-select" class="sr" tabindex="-1">${D.situations.map(x=>`<option value="${x.id}"${x.id===setup.caseId?' selected':''}>${x.id} ${esc(x.title)}</option>`).join('')}</select>
+    <div class="case-pick" role="group" aria-label="Ситуации">${cases.map(x=>`<button type="button" data-case="${x.id}" aria-pressed="${x.id===setup.caseId}"><small>${x.id} · ${esc(x.theme)}</small><b>${esc(x.title)}</b><span class="badges">${E.castOrder(x).map(r=>badge(r.type,'sm')).join('')}</span></button>`).join('')}</div></section>
+   <section class="setup-step"><h3><span>↺</span>Продолжить на другом компьютере</h3><label class="small muted" for="import-file">Откройте файл .json, сохранённый в конце прошлой встречи.</label><input type="file" id="import-file" accept=".json,application/json"></section>
+  </div>
+  <aside class="setup-summary"><div class="situation-card"><p class="pill" style="color:#fff;border-color:rgba(255,255,255,.45)">${c.id} · ${esc(c.grade)}</p><h2 style="font-size:28px;margin-top:14px">${esc(c.title)}</h2><p>${esc(c.text)}</p><p class="opening">${esc(c.opening)}</p>
+   <dl><dt>Роли по порядку входа</dt><dd><span class="badges">${E.castOrder(c).map(r=>badge(r.type,'sm')).join('')}</span><br><span class="small">${E.castOrder(c).filter(r=>r.enters===0).map(r=>esc(r.label)).join(', ')} — с начала; ещё ${c.cast.filter(r=>r.enters>0).length} войдут по ходу</span></dd><dt>Регламент · ${setup.duration} минут</dt><dd>${E.FORMATS[setup.duration].rounds.flat().map(([k,m])=>`${esc(E.STAGES[k].short)} ${m}`).join(' · ')}</dd></dl>
+   <div class="actions"><button type="submit" class="btn white" id="start">Начать встречу →</button><a class="link-arrow" style="color:#fff" href="library.html?case=${encodeURIComponent(c.id)}">Паспорт ситуации</a></div></div>
+   <p class="small muted" style="margin-top:14px">Записи хранятся только в этом браузере. Не вводите имена и узнаваемые подробности о детях и коллегах.</p></aside></form></div>`;
+  bindSetup(old);
+}
+function bindSetup(old){
+  app.querySelectorAll('[data-dur]').forEach(b=>b.onclick=()=>{setup.duration=Number(b.dataset.dur);renderSetup();});
+  app.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{setup.theme=b.dataset.theme;renderSetup();});
+  app.querySelectorAll('[data-case]').forEach(b=>b.onclick=()=>{setup.caseId=b.dataset.case;renderSetup();const el=app.querySelector(`[data-case="${b.dataset.case}"]`);if(el)el.focus();});
+  const ppl=v=>{setup.people=Math.min(40,Math.max(1,Math.round(Number(v))||1));renderSetup();$('people').focus();};
+  $('ppl-minus').onclick=()=>ppl(setup.people-1);$('ppl-plus').onclick=()=>ppl(setup.people+1);$('people').onchange=e=>ppl(e.target.value);
+  $('case-select').onchange=e=>{setup.caseId=e.target.value;renderSetup();};
+  $('setup-form').onsubmit=e=>{e.preventDefault();const n=Number($('people').value);if(Number.isInteger(n)&&n>=1&&n<=40)setup.people=n;
+    try{state=E.create({people:setup.people,duration:setup.duration,caseId:setup.caseId});warning='';save();render();window.scrollTo(0,0);}catch(err){warning=err.message;renderSetup();}};
+  $('import-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{state=E.restore(await f.text());warning='';save();render();}catch(err){warning=err.message;renderSetup();}};
+  if($('dl-stored'))$('dl-stored').onclick=()=>download('pedagog-sohranenie.json',stored,'application/json');
+  if(old){$('dl-old').onclick=()=>download('pedagog-prezhnyaya-vstrecha.json',old.value,'application/json');$('rm-old').onclick=()=>{if(confirm('Удалить записи прежней встречи из этого браузера?')){try{localStorage.removeItem(old.key);}catch{}renderSetup();}};}
+}
+
+/* ---------- Экран встречи ---------- */
+function track(r){return `<div class="track" role="list" aria-label="Этапы раунда">${r.stages.map((k,i)=>{const s=E.STAGES[k];const ev=/^ev/.test(k);const cls=[i<r.stage?'done':'',i===r.stage?'current':'',ev?'ev':''].join(' ');
+  return `<button type="button" role="listitem" class="${cls}" data-stage="${i}" ${host()?'':'tabindex="-1"'} aria-current="${i===r.stage?'step':'false'}" aria-label="${i+1}. ${esc(s.title)}, ${Math.round(r.plan[i]/60)} мин"><span class="dot"><span>${ev?'!':i+1}</span></span><span class="lbl">${esc(s.short)}</span><span class="min">${Math.round(r.plan[i]/60)} мин</span></button>`;}).join('')}</div>`;}
+
+function castBoard(cur){const {team:t,situation:c,revealed,entering}=cur;const order=E.castOrder(c);const isHost=host();
+  const ppl=t.size;const obs=E.observers(c,t);
+  const playerSel=x=>isHost&&t.mode!=='solo'?`<label class="sr" for="as-${x.key}">Кто ведёт роль</label><select id="as-${x.key}" data-assign="${x.key}">${Array.from({length:ppl+1},(_,p)=>`<option value="${p}"${t.assign[x.key]===p?' selected':''}>${p===0?'Ведущий читает':'Участник '+p}</option>`).join('')}</select>`:'';
+  const who=x=>t.mode==='solo'?'':t.assign[x.key]?`Участник ${t.assign[x.key]}`:'Ведущий читает';
+  return `<aside class="cast" aria-label="Участники ситуации"><h3>Роли <small>${order.filter(x=>x.enters<=revealed).length} из ${order.length} в игре</small></h3>
+  ${t.mode!=='solo'&&isHost?`<div class="mode-switch" role="group" aria-label="Режим"><button type="button" data-mode="scene" aria-pressed="${t.mode==='scene'}">Сцена</button><button type="button" data-mode="council" aria-pressed="${t.mode==='council'}">Совет коллег</button></div>`:''}
+  ${order.map((x,i)=>{const typ=T(x.type);
+    if(x.enters>revealed) return `<div class="cast-item waiting"><span class="badge">?</span><b>Роль ${i+1}</b><small>войдёт с обстоятельством ${x.enters}${isHost&&t.mode!=='solo'?' · '+who(x):''}</small></div>`;
+    const isNew=entering.some(n=>n.key===x.key);
+    return `<div class="cast-item${isNew?' entering':''}">${badge(x.type)}<b>${esc(x.label)}${isNew?' <span class="pill coral" style="padding:2px 8px;font-size:10.5px;margin-left:4px">входит</span>':''}</b><div class="row"><small>${typ.title!==x.label?esc(typ.title):''}${typ.title!==x.label&&who(x)?' · ':''}${who(x)}</small></div><div class="row">${playerSel(x)}${isHost?`<button type="button" class="open-role" data-role="${x.key}">Карточка роли</button>`:`<small style="color:#DADCF3;font-weight:500">${esc(x.position)}</small>`}</div></div>`;}).join('')}
+  ${t.mode==='solo'?'<p class="obs">Один участник: все роли ваши — по очереди.</p>':obs.length?`<p class="obs">Наблюдатели: ${obs.map(p=>'участник '+p).join(', ')}. Задача — точная реплика, факт отдельно от догадки, один вопрос.</p>`:'<p class="obs">Свободных участников нет: наблюдение ведёт ведущий.</p>'}
+  </aside>`;}
+
+function situationBlock(c,compact){return `<article class="situation-card${compact?' compact':''}"><p class="pill" style="color:#fff;border-color:rgba(255,255,255,.45)">Исходная ситуация · ${c.id}</p><h3 style="margin-top:12px">${esc(c.title)}</h3><p class="text">${esc(c.text)}</p><p class="opening">${esc(c.opening)}</p>${compact?'':`<dl><dt>Дилемма</dt><dd>${esc(c.dilemma)}</dd><dt>Что нужно получить</dt><dd>${esc(c.goal)}</dd></dl>`}</article>`;}
+function eventBlock(c,ev,n,isNew){return `<article class="event-card${isNew?' new':''}"><div class="num"><span>${n}</span></div><p class="pill coral" style="justify-self:start">${isNew?'Новое обстоятельство':'Обстоятельство '+n}</p><h3>${esc(ev.title)}</h3><p>${esc(ev.text)}</p><p class="enter">${ev.adds.map(k=>{const x=roleOf(c,k);return badge(x.type,'sm')+' '+esc(x.label);}).join(' · ')} — в игре</p><p class="q">${esc(ev.ask)}</p></article>`;}
+
+function stageExtras(cur){const {team:t,situation:c,key}=cur;const out=[];
+  if(key==='start'){out.push(`<div class="panel flat"><h3 style="margin-bottom:10px">Договорённости перед началом</h3><ul class="qs"><li>Можно наблюдать, сменить роль или попросить паузу — без объяснений.</li><li>Обсуждаем действия, а не людей. Реальных детей и коллег не называем.</li><li>Карточку роли читает только тот, кто её ведёт. Новые роли и обстоятельства появятся по ходу.</li></ul></div>`);}
+  if(key==='solution'){out.push(`<div class="panel flat"><h3>Ресурс <small class="muted" style="font-weight:500">— по желанию, как инструмент для решения</small></h3><div class="res-pick" role="group" aria-label="Ресурсы">${c.resourceIds.map(id=>{const r=E.by('resources',id);return `<button type="button" data-res="${id}" aria-pressed="${t.resource===id}"${host()?'':' disabled'}><b>${esc(r.title)}</b><small>${esc(r.text)}</small></button>`;}).join('')}</div></div>`);}
+  if(key==='reflect'){const m=E.by('reflections',t.reflectCard);out.push(`<div class="panel flat"><h3>Вопросы для рефлексии</h3><ul class="qs">${c.debrief.map(q=>`<li>${esc(q)}</li>`).join('')}<li style="background:var(--teal-mist);color:var(--teal-900)">${esc(m.title)}: ${esc(m.text)}</li></ul></div>`);}
+  if(key==='break'){out.push(`<div class="panel flat"><h3>Ситуация второго раунда</h3><label for="next-case" class="small muted">Лучше из другой темы — чтобы сравнить, как работают разные роли.</label><select id="next-case">${D.situations.filter(x=>x.id!==c.id).map(x=>`<option value="${x.id}">${x.id} · ${esc(x.title)} (${esc(x.theme)})</option>`).join('')}</select></div>`);}
+  return out.join('');}
+
+const NOTE_HINT={positions:'Что прозвучало? Какой видится ситуация сейчас?',ev1:'Что изменилось в понимании? Что оказалось предположением?',ev2:'Что подтвердилось, а что пришлось пересмотреть?',ev3:'Какой стала полная картина?',decision:'Что делаем · кто · к какому сроку · как поймём, что получилось. Несогласие тоже можно записать.',reflection:'Общий вывод — только если группа согласна его записать.',meeting:'Что из двух раундов группа берёт в работу?'};
+function noteField(cur,s){if(!s.note||!host())return '';const key=s.note;const val=key==='meeting'?state.meeting:cur.team.notes[key];
+  return `<div class="note-box"><label for="note">${key==='meeting'?'Итог встречи':esc(E.NOTE_LABELS[key])}<small>сохраняется автоматически</small></label><textarea id="note" data-note="${key}" placeholder="${esc(NOTE_HINT[key])}">${esc(val)}</textarea></div>`;}
+
+function renderSession(){
+  const cur=E.current(state),r=cur.round,c=cur.situation,t=cur.team,s=E.stageCopy(state);const isHost=host();
+  document.body.classList.toggle('participant',!isHost);
+  const multiTeam=r.teams.length>1,multiRound=state.rounds.length>1;
+  const last=r.stage===r.stages.length-1,planned=E.plannedRounds(state);
+  const futureEvents=c.events.map((ev,i)=>i+1).filter(n=>n>cur.revealed);
+  const opened=c.events.map((ev,i)=>({ev,n:i+1})).filter(o=>o.n<=cur.revealed).reverse();
+  const newNums=cur.events.map(e=>e.number);
+  app.innerHTML=`<div class="wrap game-shell">
+  ${warning?`<p class="note-card" role="alert">${esc(warning)}</p>`:''}
+  <div class="game-top"><div class="title"><small>${c.id} · раунд ${r.number}${planned>1?' из '+Math.max(planned,state.rounds.length):''}${multiTeam?` · команда ${t.number} (${t.size} ${word(t.size,'человек','человека','человек')})`:` · ${state.settings.people} ${word(state.settings.people,'участник','участника','участников')}`}</small><b>${esc(c.title)}</b></div>
+   <div class="tools">${multiRound&&isHost?`<label class="sr" for="round-select">Раунд</label><select id="round-select">${state.rounds.map((x,i)=>`<option value="${i}"${i===state.currentRound?' selected':''}>Раунд ${x.number}</option>`).join('')}</select>`:''}
+   ${multiTeam&&isHost?`<label class="sr" for="team-select">Команда</label><select id="team-select">${r.teams.map((x,i)=>`<option value="${i}"${i===state.currentTeam?' selected':''}>Команда ${x.number} · ${x.size} чел.</option>`).join('')}</select>`:''}
+   <div class="timer${r.remaining<=0?' over':''}"><output id="clock" aria-live="off" aria-label="Осталось времени на этапе">${mmss(r.remaining)}</output>${isHost?`<button type="button" id="timer-toggle" aria-label="${r.running?'Пауза таймера':'Запустить таймер'}">${r.running?'❚❚':'▶'}</button><button type="button" id="timer-plus" class="wide" aria-label="Добавить минуту">+1</button>`:''}</div>
+   <button type="button" class="btn small" id="toggle-view">${isHost?'Экран для всех':'Экран ведущего'}</button>${isHost?`<button type="button" class="btn small" id="group-pause">Пауза для группы</button>`:''}</div></div>
+  ${track(r)}
+  <div class="game-grid"><div style="display:grid;gap:16px;min-width:0">
+   ${opened.filter(o=>newNums.includes(o.n)).map(o=>eventBlock(c,o.ev,o.n,true)).join('')}
+   <section class="stage-panel" aria-labelledby="stage-title"><div class="stage-head"><div><p class="eyebrow" style="margin-bottom:8px">Этап ${r.stage+1} из ${r.stages.length} · ${s.minutes} мин</p><h2 id="stage-title">${esc(s.title)}</h2></div>${cur.entering.length?`<div class="badges" aria-label="Входят роли">${cur.entering.map(x=>badge(x.type,'lg')).join('')}</div>`:''}</div>
+    <p class="do">${esc(s.do)}</p>
+    ${cur.entering.length?`<p class="note-card" style="margin:0"><b>Входит в игру:</b> ${cur.entering.map(x=>esc(x.label)+(t.mode!=='solo'?` (${t.assign[x.key]?'участник '+t.assign[x.key]:'читает ведущий'})`:'')).join(', ')}. ${t.mode==='solo'?'Прочитайте карточку новой роли справа.':'Откройте карточку роли и передайте её участнику.'}</p>`:''}
+    <div class="meta"><span><b>Кто:</b> ${esc(s.who)}</span><span><b>Итог этапа:</b> ${esc(s.result)}</span></div>
+    ${stageExtras(cur)}${noteField(cur,s)}
+    ${isHost?`<div class="game-nav"><button type="button" class="btn" id="prev-stage"${r.stage===0?' disabled':''}>← Назад</button><span class="status" id="status" role="status">${esc(announce)}</span>
+     ${!last?`<button type="button" class="btn primary" id="next-stage">${/^ev/.test(r.stages[r.stage+1])?'Открыть обстоятельство →':'Далее →'}</button>`:r.number<planned?`<button type="button" class="btn primary" id="next-round">Начать раунд ${r.number+1} →</button>`:`<span style="display:flex;gap:10px;flex-wrap:wrap">${state.rounds.length<6?'<button type="button" class="btn" id="extra-round">Ещё раунд</button>':''}<button type="button" class="btn primary" id="finish">Завершить встречу →</button></span>`}</div>`:''}
+   </section>
+   <div class="feed">
+    ${opened.filter(o=>!newNums.includes(o.n)).map(o=>eventBlock(c,o.ev,o.n,false)).join('')}
+    ${situationBlock(c,cur.revealed>0)}
+    ${futureEvents.length&&!['solution','reflect','break','summary'].includes(cur.key)?futureEvents.map(n=>`<div class="locked-card"><span class="lock"><span>${n}</span></span><span>Обстоятельство ${n} откроется на этапе «${esc(E.STAGES[r.stages.find(k=>E.STAGES[k].reveal>=n)].title)}»</span></div>`).join(''):''}
+   </div></div>
+   ${castBoard(cur)}</div>
+   ${isHost?`<div class="actions" style="justify-content:flex-end"><button type="button" class="btn small" id="export-json">Сохранить файл встречи</button><button type="button" class="btn small" id="reset">Новая встреча</button></div>`:''}
+  </div>
+  <div class="modal" id="modal" hidden></div>`;
+  bindSession(cur);announce='';
+}
+
+function roleModal(c,key){const x=roleOf(c,key),t=T(x.type);const m=$('modal');
+  m.innerHTML=`<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="role-title"><p class="warn">Карточку читает только тот, кто ведёт роль. Остальным достаточно позиции, которую персонаж скажет сам.</p>
+  <article class="role-card" style="--c:${t.color};box-shadow:none;padding:0;border-top:0"><header>${badge(x.type,'lg')}<div><b id="role-title">${esc(x.label)}</b><small>${esc(t.title)} · ${enterLabel(x.enters)}</small></div></header>
+  <dl><dt>Позиция</dt><dd>${esc(x.position)}</dd><dt>Что знаете</dt><dd>${esc(x.knows)}</dd><dt>Чего хотите</dt><dd>${esc(x.wants)}</dd><dt>Переживаете</dt><dd>${esc(x.feels)}</dd><dt>Отвечаете за</dt><dd>${esc(x.zone)}</dd></dl><div class="ask">${esc(x.ask)}</div><p class="small muted" style="margin:0">${esc(t.text)}</p></article>
+  <div class="actions"><button type="button" class="btn primary" id="modal-close">Закрыть</button></div></div>`;
+  m.hidden=false;modal=key;$('modal-close').focus();$('modal-close').onclick=closeModal;m.onclick=e=>{if(e.target===m)closeModal();};}
+function pauseModal(){const m=$('modal');pauseOpen=true;const r=E.current(state).round;r.running=false;save();
+  m.innerHTML=`<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="pause-title" style="text-align:center"><p class="eyebrow" style="justify-content:center">Пауза для группы</p><h2 id="pause-title" style="font-size:32px">Остановимся</h2><p>Таймер стоит. Можно выйти из роли, поменяться ролями, перейти в наблюдатели или заменить ситуацию. Объяснять причину не нужно.</p><div class="actions" style="justify-content:center"><button type="button" class="btn primary" id="modal-close">Продолжить</button></div></div>`;
+  m.hidden=false;$('modal-close').focus();$('modal-close').onclick=closeModal;}
+function closeModal(){const m=$('modal');if(m){m.hidden=true;m.innerHTML='';}modal=null;pauseOpen=false;}
+
+function act(fn){try{fn();warning='';save();render();}catch(e){announce=e.message;render();}}
+function bindSession(cur){const r=cur.round;
+  app.querySelectorAll('[data-stage]').forEach(b=>b.onclick=()=>{if(host())act(()=>E.move(state,Number(b.dataset.stage)));});
+  if($('next-stage'))$('next-stage').onclick=()=>act(()=>E.move(state,r.stage+1));
+  if($('prev-stage'))$('prev-stage').onclick=()=>act(()=>E.move(state,r.stage-1));
+  if($('next-round'))$('next-round').onclick=()=>act(()=>{const sel=$('next-case');const id=sel?sel.value:pickNext(cur.situation);E.nextRound(state,id);});
+  if($('extra-round'))$('extra-round').onclick=()=>act(()=>E.nextRound(state,pickNext(cur.situation)));
+  if($('finish'))$('finish').onclick=()=>act(()=>E.finish(state));
+  if($('timer-toggle'))$('timer-toggle').onclick=()=>{r.running=!r.running;lastTick=Date.now();save();render();};
+  if($('timer-plus'))$('timer-plus').onclick=()=>{r.remaining+=60;save();render();};
+  $('toggle-view').onclick=()=>{state.view=host()?'participant':'host';save();render();};
+  if($('group-pause'))$('group-pause').onclick=pauseModal;
+  if($('round-select'))$('round-select').onchange=e=>act(()=>{state.rounds.forEach(x=>x.running=false);state.currentRound=Number(e.target.value);state.currentTeam=0;});
+  if($('team-select'))$('team-select').onchange=e=>act(()=>{state.currentTeam=Number(e.target.value);});
+  app.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>act(()=>E.setMode(state,b.dataset.mode)));
+  app.querySelectorAll('[data-assign]').forEach(s=>s.onchange=()=>act(()=>E.assign(state,s.dataset.assign,Number(s.value))));
+  app.querySelectorAll('[data-res]').forEach(b=>b.onclick=()=>act(()=>E.resource(state,cur.team.resource===b.dataset.res?null:b.dataset.res)));
+  app.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>roleModal(cur.situation,b.dataset.role));
+  const note=$('note');if(note)note.oninput=()=>{if(note.dataset.note==='meeting')state.meeting=note.value.slice(0,12000);else cur.team.notes[note.dataset.note]=note.value.slice(0,12000);save();};
+  if($('export-json'))$('export-json').onclick=()=>download(`pedagog-vstrecha-${state.started.slice(0,10)}.json`,JSON.stringify(state,null,1),'application/json');
+  if($('reset'))$('reset').onclick=()=>{if(confirm('Начать новую встречу? Текущие записи будут удалены из браузера. Сначала можно сохранить файл встречи.')){try{localStorage.removeItem(KEY);}catch{}state=null;render();window.scrollTo(0,0);}};
+}
+function pickNext(c){const other=D.situations.filter(x=>x.theme!==c.theme);return (other[Math.floor(Math.random()*other.length)]||D.situations[0]).id;}
 
 /* ---------- Итоги ---------- */
-function teamReport(t){const c=E.by('situations',t.caseId),res=t.resource&&E.by('resources',t.resource),tu=t.turn&&E.by('turns',t.turn);
- return [`${c.id} «${c.title}»`,`Позиции: ${E.positions(c,t.roleSet).map(p=>p.who+(LENS[p.roleId]&&LENS[p.roleId]!==p.who.toLowerCase()?' — '+LENS[p.roleId]:'')).join('; ')}${t.discussion?' · совет коллег без сцены':''}`,
- `Ресурс: ${res?res.title:'не выбран'}${tu?` · поворот: ${tu.title}`:''}`,...E.NOTE_KEYS.map(k=>`${NOTE_LABELS[k]}: ${t.notes[k].trim()||'—'}`)].join('\n');}
-function reportText(){const f=E.FORMATS[state.settings.duration];const lines=['ПЕДАГОГ · итоги встречи',`Дата: ${new Date(state.started).toLocaleDateString('ru-RU')}`,`Формат: ${state.settings.duration} минут — ${f.title.toLowerCase()} · участников: ${state.settings.people}${state.settings.teams>1?` · команд: ${state.settings.teams}`:''}`,''];
- state.rounds.forEach(r=>{lines.push(`РАУНД ${r.number}`);r.teams.forEach(t=>{if(state.settings.teams>1)lines.push(`Команда ${t.number} (${t.size} ${peopleWord(t.size)})`);lines.push(teamReport(t),'');});});
- if(state.meeting.trim())lines.push('ИТОГ ВСТРЕЧИ',state.meeting.trim(),'');
- lines.push('Записи обезличены и сделаны с согласия группы. Личные выводы участников остаются у них.');return lines.join('\n');}
-function summaryHTML(){return `${state.rounds.map(r=>`<section class="panel results-round"><h2>Раунд ${r.number}</h2>${r.teams.map(t=>{const c=E.by('situations',t.caseId),res=t.resource&&E.by('resources',t.resource);const n=k=>esc(t.notes[k].trim())||'<span class="muted">не записано</span>';
- return `<article class="result-team">${state.settings.teams>1?`<p class="eyebrow">Команда ${t.number}</p>`:''}<h3>${esc(c.id)} · ${esc(c.title)}</h3><p class="muted">${esc(c.dilemma)}</p><div class="compare-grid"><div><h4>Первый вариант</h4><p>${n('first')}</p></div><div><h4>Второй вариант${res?` · ${esc(res.title)}`:''}</h4><p>${n('retry')}</p></div></div><dl class="result-list"><div><dt>Что заметили</dt><dd>${n('observed')}</dd></div><div><dt>Последствия</dt><dd>${n('consequences')}</dd></div><div><dt>Решение</dt><dd>${n('decision')}</dd></div><div><dt>Общий вывод</dt><dd>${n('reflection')}</dd></div></dl></article>`;}).join('')}</section>`).join('')}${state.meeting.trim()?`<section class="panel"><h2>Итог встречи</h2><p class="pre">${esc(state.meeting)}</p></section>`:''}`;}
+function summaryText(){const L=[];L.push('ПЕДАГОГ · итоги встречи',`Дата: ${new Date(state.started).toLocaleDateString('ru-RU')} · формат ${state.settings.duration} мин · участников: ${state.settings.people}`,'');
+  state.rounds.forEach(r=>r.teams.forEach(t=>{const c=E.by('situations',t.caseId);L.push(`Раунд ${r.number}${r.teams.length>1?' · команда '+t.number:''}: ${c.id} «${c.title}»`);
+    if(t.resource)L.push('Ресурс: '+E.by('resources',t.resource).title);
+    E.NOTE_KEYS.forEach(k=>{if(t.notes[k].trim())L.push(`${E.NOTE_LABELS[k]}:\n${t.notes[k].trim()}`);});L.push('');}));
+  if(state.meeting.trim())L.push('Итог встречи:',state.meeting.trim());
+  L.push('','Записи без имён и узнаваемых подробностей. Игра не используется для оценки сотрудников.');return L.join('\n');}
+function renderSummary(){document.body.classList.remove('participant');
+  app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Встреча завершена</p><h1><span class="dim">Итоги</span> встречи</h1><p class="lead">Решения команд и общий вывод. Личные шаги остаются у участников. Скачайте итоги — в браузере они хранятся только до новой встречи.</p>
+  <div class="actions"><button class="btn white" id="dl-txt">Скачать итоги (.txt)</button><button class="btn ghost-light" id="dl-json">Файл встречи (.json)</button><button class="btn ghost-light" id="print-sum">Распечатать</button></div></div><div class="hero-deco">${A.pageDeco(['Ро-06','Ро-04','Ро-01'])}</div></section>
+  <section class="page-body"><div class="wrap">${state.rounds.map(r=>r.teams.map(t=>{const c=E.by('situations',t.caseId);return `<article class="panel summary-team"><p class="eyebrow">Раунд ${r.number}${r.teams.length>1?' · команда '+t.number:''}</p><h2 style="font-size:28px">${esc(c.title)}</h2>
+   <dl>${t.resource?`<dt>Ресурс</dt><dd>${esc(E.by('resources',t.resource).title)}</dd>`:''}${E.NOTE_KEYS.map(k=>t.notes[k].trim()?`<dt>${esc(E.NOTE_LABELS[k])}</dt><dd>${esc(t.notes[k])}</dd>`:'').join('')||'<dt>Записи</dt><dd class="muted">Команда ничего не записала — это допустимо.</dd>'}</dl></article>`;}).join('')).join('')}
+   ${state.meeting.trim()?`<article class="panel summary-team"><p class="eyebrow">Общий итог</p><dl><dt>Итог встречи</dt><dd>${esc(state.meeting)}</dd></dl></article>`:''}
+   <div class="actions"><button class="btn" id="reopen">← Вернуться к встрече</button><button class="btn primary" id="new-meeting">Новая встреча</button></div></div></section>`;
+  $('dl-txt').onclick=()=>download(`pedagog-itogi-${state.started.slice(0,10)}.txt`,summaryText());
+  $('dl-json').onclick=()=>download(`pedagog-vstrecha-${state.started.slice(0,10)}.json`,JSON.stringify(state,null,1),'application/json');
+  $('print-sum').onclick=()=>window.print();
+  $('reopen').onclick=()=>act(()=>E.reopen(state));
+  $('new-meeting').onclick=()=>{if(confirm('Начать новую встречу? Записи этой встречи будут удалены из браузера.')){try{localStorage.removeItem(KEY);}catch{}state=null;render();window.scrollTo(0,0);}};
+}
 
-/* ---------- Подготовка ---------- */
-function themeOptions(selected){const groups={};for(const c of D.situations)(groups[c.theme||'Ситуации']??=[]).push(c);return Object.entries(groups).map(([t,list])=>`<optgroup label="${esc(t)}">${list.map(c=>opt(c.id,c.id+' · '+c.title,selected)).join('')}</optgroup>`).join('');}
-function peopleHint(n){if(!Number.isInteger(n)||n<1||n>40)return 'Укажите число от 1 до 40.';if(n===1)return 'Один участник: вы по очереди посмотрите на ситуацию с каждой позиции и запишете два варианта. Сцены нет.';
- if(n<=12)return `Одна группа. 2–3 человека в сцене, остальные — наблюдатели с конкретной задачей. Ведущий — отдельно, если не играет.`;const t=E.teamsFor(n);return `${t} команды по 4–6 человек, все с одной ситуацией. Экран общий; у каждого стола — помощник с распечаткой карточек.`;}
-function renderSetup(){
- const old=(()=>{try{return localStorage.getItem(OLD_KEY);}catch{return null;}})();
- const f=E.FORMATS;
- app.innerHTML=`<div class="game-intro"><p class="eyebrow">Онлайн-игра</p><h1>Провести игру</h1><p class="lead">Выберите время, число участников и ситуацию — остальное сайт подготовит сам: роли, этапы, таймер и подсказки на каждом шаге.</p></div>
- <p id="game-status" class="notice" role="status" ${warning?'':'hidden'}>${esc(warning)}</p>
- ${state?`<section class="panel resume"><h2>${state.completed?'Итоги прошлой встречи сохранены':'Есть незавершённая встреча'}</h2><p>${state.settings.duration} минут · ${state.settings.people} ${peopleWord(state.settings.people)} · ${esc(E.by('situations',state.rounds[0].teams[0].caseId).title)}. Таймер стоит на паузе.</p><div class="actions">${btn('restore-session',state.completed?'Открыть итоги':'Продолжить встречу','primary')}</div></section>`:''}
- ${old?`<section class="panel"><h2>Сохранение прежней версии</h2><p>В этом браузере осталась встреча из прежней версии игры. Продолжить её нельзя, но записи можно скачать файлом.</p><div class="actions">${btn('old-download','Скачать прежние записи')}${btn('old-forget','Удалить из браузера')}</div></section>`:''}
- <form id="session-form" class="setup" novalidate>
-  <fieldset class="setup-step"><legend><span>1</span> Сколько у вас времени?</legend><div class="quick-presets">${E.DURATIONS.map(m=>`<button type="button" id="preset-${m}" aria-pressed="${setup.duration===m}"><strong>${m} минут</strong><b>${esc(f[m].title)}</b><span>${esc(f[m].lead)}</span><small>${esc(f[m].people)}</small></button>`).join('')}</div></fieldset>
-  <fieldset class="setup-step"><legend><span>2</span> Сколько человек играет?</legend><label for="people" class="sr-only">Число участников без ведущего</label><input id="people" type="number" inputmode="numeric" min="1" max="40" value="${setup.people}" aria-describedby="people-hint"><p id="people-hint" class="muted">${esc(peopleHint(setup.people))}</p></fieldset>
-  <fieldset class="setup-step"><legend><span>3</span> Какую ситуацию разберём?</legend><label for="case-select" class="sr-only">Ситуация</label><div class="case-pick"><select id="case-select">${themeOptions(setup.caseId)}</select>${btn('random-case','Случайная')}</div><div id="setup-preview"></div></fieldset>
-  <div class="actions"><button class="primary big" type="submit">Начать игру →</button></div>
-  <p class="muted small-print">Игра идёт с одного экрана: ведущий управляет, участники смотрят на экран в зале или через демонстрацию экрана в видеосвязи. Подключения с разных устройств нет. Записи хранятся только в этом браузере.</p>
- </form>
- <details class="panel"><summary>Открыть сохранённую встречу из файла</summary><label for="import-session">Файл .json, скачанный кнопкой «Сохранить файл встречи»</label><input id="import-session" type="file" accept=".json,application/json"></details>`;
- const preview=()=>{const c=E.by('situations',setup.caseId);$('setup-preview').innerHTML=`<article class="case-mini"><p class="tag">${esc(c.id)} · ${esc(c.theme||'')}</p><h3>${esc(c.title)}</h3><p>${esc(c.text)}</p><p class="dilemma"><strong>Дилемма.</strong> ${esc(c.dilemma)}</p></article>`;};preview();
- for(const m of E.DURATIONS)$('preset-'+m).onclick=()=>{setup.duration=m;for(const x of E.DURATIONS)$('preset-'+x).setAttribute('aria-pressed',String(x===m));};
- $('people').oninput=()=>{setup.people=Number($('people').value);$('people-hint').textContent=peopleHint(setup.people);};
- $('case-select').onchange=()=>{setup.caseId=$('case-select').value;preview();};
- $('random-case').onclick=()=>{const pool=D.situations.filter(c=>c.id!==setup.caseId);setup.caseId=E.pick(pool).id;$('case-select').value=setup.caseId;preview();};
- $('session-form').onsubmit=e=>{e.preventDefault();setup.people=Number($('people').value);try{const candidate=E.create(setup);if(state&&!state.completed&&!confirm('Начать новую встречу? Незавершённая встреча будет заменена. Если записи нужны, сначала откройте её и скачайте итоги.'))return;state=candidate;reflectCard=null;save();render();focusTop();}catch(err){say(err.message,true);$('people').focus();}};
- if($('restore-session'))$('restore-session').onclick=()=>{render();focusTop();};
- if($('old-download'))$('old-download').onclick=()=>download(old,'PEDAGOG-old-session.json');
- if($('old-forget'))$('old-forget').onclick=()=>{if(confirm('Удалить прежнее сохранение из этого браузера?')){try{localStorage.removeItem(OLD_KEY);}catch{}renderSetup();}};
- $('import-session').onchange=async()=>{const file=$('import-session').files[0];if(!file)return;try{if(file.size>2000000)throw new Error('Файл больше 2 МБ.');const candidate=E.restore(await file.text());if(state&&!confirm('Заменить текущую встречу открытым файлом?'))return;state=candidate;save();render();focusTop();}catch(err){say('Не удалось открыть файл: '+err.message,true);}};
-}
-function focusTop(){const h=app.querySelector('h1');if(h){h.tabIndex=-1;h.focus({preventScroll:true});h.scrollIntoView?.({block:'start'});}}
+function render(){if(!state)renderSetup();else if(state.completed)renderSummary();else renderSession();}
 
-/* ---------- Игра ---------- */
-function seatsHTML(t,c,compact){const ps=E.positions(c,t.roleSet),obs=Math.max(0,t.size-ps.length);
- return `<div class="seats">${ps.map(p=>{const role=E.by('roles',p.roleId);return `<article class="seat"><p class="seat-num">Место ${p.seat}</p><h3>${esc(p.who)}</h3><p class="seat-role">Взгляд: ${esc(LENS[p.roleId])} · карточка ${esc(p.roleId)}</p>${compact?'':`<p>${esc(p.brief)}</p>`}<p class="seat-ask"><strong>Ваш вопрос:</strong> ${esc(p.ask)}</p>${compact?'':`<details><summary>Как играть эту роль</summary><p>${esc(role.text)}</p></details>`}</article>`;}).join('')}
- ${state.settings.solo?'':`<article class="seat observer"><p class="seat-num">${obs?`${obs} ${peopleWord(obs)}`:'Если есть желающие'}</p><h3>Наблюдатели</h3><p>${esc(E.by('roles','Ро-09').text)}</p><p class="muted">Удобно разделить фокусы: точные слова · интересы сторон · чего не знаем · последствия.</p></article>`}</div>`;}
-function rolesPanel(t,c,host){const ps=E.positions(c,t.roleSet);
- return `<section class="panel"><h2>Кто есть кто</h2><p>${state.settings.solo?'Вы рассматриваете все позиции по очереди.':t.discussion?'<strong>Совет коллег:</strong> сцену не играем — обсуждаем, что и какими словами сказал бы каждый персонаж.':'Места занимают добровольцы. Отказаться или перейти в наблюдатели можно в любой момент — без объяснений.'}</p>
- ${host&&c.roleSets.length>1?`<label for="role-set">Состав сцены</label><select id="role-set">${c.roleSets.map((set,i)=>opt(i,setLabel(c,i),t.roleSet)).join('')}</select>`:''}
- ${seatsHTML(t,c,false)}
- ${host&&!state.settings.solo&&c.id!=='С-17'&&t.size>=ps.length?`<label class="check"><input id="discussion-mode" type="checkbox" ${t.discussion?'checked':''}> Без сцены — обсуждаем как совет коллег</label>`:''}</section>`;}
-function situationHTML(c,open){const body=`<p>${esc(c.text)}</p><p class="opening"><strong>Начальная реплика.</strong> ${esc(c.opening)}</p><p class="dilemma"><strong>Дилемма.</strong> ${esc(c.dilemma)}</p><p><strong>Что нужно получить.</strong> ${esc(c.goal)}</p><p class="muted"><strong>Ведущему.</strong> ${esc(c.note)}</p>`;
- return open?`<section class="panel case-panel"><p class="tag">${esc(c.id)}</p><h2>${esc(c.title)}</h2>${body}</section>`:`<details class="panel case-panel"><summary><span class="tag">${esc(c.id)}</span> ${esc(c.title)} — открыть ситуацию</summary>${body}</details>`;}
-function noteHTML(t,key,host){const label=key==='meeting'?'Итог встречи':NOTE_LABELS[key];const value=key==='meeting'?state.meeting:t.notes[key];
- if(!host)return value.trim()?`<div class="note-view"><h3>${label}</h3><p class="pre">${esc(value)}</p></div>`:'';
- return `<div class="note-box"><label for="note-${key}">${label}${state.settings.teams>1&&key!=='meeting'?` · команда ${t.number}`:''}</label><textarea id="note-${key}" data-note="${key}" rows="4" maxlength="12000" placeholder="${esc(NOTE_HINTS[key])}">${esc(value)}</textarea><p class="muted small-print">Сохраняется автоматически. Без имён и узнаваемых подробностей.</p></div>`;}
-function resourcePanel(r,host){const t=E.current(state).team,c=E.by('situations',t.caseId);
- const list=c.resourceIds.map(id=>{const x=E.by('resources',id);const on=t.resource===id;return host?`<button type="button" class="resource-option" data-resource="${esc(id)}" aria-pressed="${on}"><span class="tag">${esc(id)}</span><strong>${esc(x.title)}</strong><span>${esc(x.text)}</span></button>`:on?`<article class="resource-option" aria-current="true"><strong>${esc(x.title)}</strong><span>${esc(x.text)}</span></article>`:'';}).join('');
- const status=r.teams.length>1?`<p class="muted">Выбрано: ${r.teams.map(x=>`команда ${x.number} — ${x.resource?esc(E.by('resources',x.resource).title):'<strong>нет</strong>'}`).join(' · ')}</p>`:'';
- return `<section class="panel"><h2>Карточка ресурса${r.teams.length>1?` · команда ${t.number}`:''}</h2><p>${host?'Выберите одну карточку, которая поможет во второй попытке. Не уверены — возьмите случайную.':'Ресурс для второй попытки:'}</p>${status}<div class="resource-grid">${list||'<p>Ресурс ещё не выбран.</p>'}</div>${host?`<div class="actions">${btn('random-resource','Случайная карточка')}</div>`:''}</section>`;}
-function chosenResource(t){if(!t.resource)return '';const x=E.by('resources',t.resource);return `<section class="panel resource-chosen"><p class="eyebrow">Ресурс</p><h3>${esc(x.title)}</h3><p>${esc(x.text)}</p></section>`;}
-function comparePanel(t){return `<section class="panel"><h2>Два варианта рядом</h2><div class="compare-grid"><div><h3>Первый вариант</h3><p class="pre">${esc(t.notes.first.trim())||'<span class="muted">не записан — восстановите устно</span>'}</p></div><div><h3>Второй вариант${t.resource?' · '+esc(E.by('resources',t.resource).title):''}</h3><p class="pre">${esc(t.notes.retry.trim())||'<span class="muted">не записан — восстановите устно</span>'}</p></div></div>${t.notes.observed.trim()?`<p><strong>Что заметили:</strong> ${esc(t.notes.observed)}</p>`:''}</section>`;}
-function turnPanel(t,host){const ids=E.eligibleTurns(state);if(state.settings.duration===15)return '';
- const active=t.turn&&E.by('turns',t.turn);
- if(!host)return active?`<section class="panel"><p class="eyebrow">Поворот</p><h3>${esc(active.title)}</h3><p>${esc(active.text)}</p></section>`:'';
- if(!ids.length&&!active)return '';
- return `<details class="panel" ${active?'open':''}><summary>Проверить решение поворотом — по желанию</summary><p>Поворот меняет одно условие и показывает, насколько решение устойчиво. Берите его, только если группа согласна и осталось время.</p>${active?`<article class="turn-card"><p class="tag">${esc(active.id)}</p><h3>${esc(active.title)}</h3><p>${esc(active.text)}</p></article><div class="actions">${btn('clear-turn','Убрать поворот')}</div>`:`<div class="actions">${btn('draw-turn','Вытянуть карточку поворота')}</div><p class="muted">Подходят: ${ids.map(id=>esc(E.by('turns',id).title)).join(' · ')}.</p>`}</details>`;}
-function reflectPanel(c){if(!reflectCard||!reflectCard.startsWith('М-'))reflectCard=E.pick(D.reflections).id;const m=E.by('reflections',reflectCard);
- return `<section class="panel"><h2>Вопросы для разговора</h2><ul class="questions">${c.debrief.map(q=>`<li>${esc(q)}</li>`).join('')}</ul><div class="turn-card"><p class="tag">${esc(m.id)} · ${esc(m.title)}</p><p>${esc(m.text)}</p></div><p class="personal"><strong>Личный шаг — на своём листе:</strong> «В похожей ситуации я попробую… Пойму, что получилось, если…» Зачитывать не обязательно.</p></section>`;}
-function nextCaseSelect(c){const others=D.situations.filter(x=>x.theme!==c.theme&&x.id!==c.id);const sug=(others.length?E.pick(others):D.situations.find(x=>x.id!==c.id)).id;
- return `<label for="next-case">Ситуация следующего раунда</label><div class="case-pick"><select id="next-case">${themeOptions(sug)}</select></div>`;}
+/* Таймер: тикает только у активного раунда; после перезагрузки стоит на паузе. */
+setInterval(()=>{const now=Date.now(),dt=(now-lastTick)/1000;lastTick=now;if(!state||state.completed)return;const r=state.rounds[state.currentRound];if(!r.running)return;
+  const before=r.remaining;r.remaining=Math.max(0,r.remaining-dt);const clock=$('clock');if(clock)clock.textContent=mmss(r.remaining);
+  if(before>0&&r.remaining<=0){r.running=false;save();render();const st=$('status');if(st)st.textContent='Время этапа вышло. Можно добавить минуту или перейти дальше.';}
+  else if(Math.floor(before)!==Math.floor(r.remaining))save();},250);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(modal||pauseOpen){closeModal();}else if(state&&state.view==='participant'){state.view='host';save();render();}}});
 
-function render(){
- advanceClock();
- if(state.completed)return renderResults();
- const focusId=document.activeElement?.id;
- const {round:r,team:t,situation:c,key}=E.current(state),st=E.stageCopy(state),host=state.view==='host',planned=E.plannedRounds(state);
- const last=r.stage===r.stages.length-1,lastPlanned=state.currentRound>=planned-1;
- const teamTabs=state.settings.teams>1?`<div class="team-tabs" role="group" aria-label="Команда">${r.teams.map((x,i)=>`<button type="button" data-team="${i}" aria-pressed="${i===state.currentTeam}">Команда ${x.number}${x.resource&&['resource','quickResource'].includes(key)?' ✓':''}</button>`).join('')}</div>`:'';
- let body='';
- if(key==='situation')body=situationHTML(c,true)+rolesPanel(t,c,host)+(host?`<details class="panel"><summary>Ситуация не подходит группе?</summary><p>Замените её — роли и записи этого раунда начнутся заново.</p><div class="case-pick"><select id="change-case" aria-label="Другая ситуация">${themeOptions(c.id)}</select>${btn('apply-case','Заменить')}</div></details>`:'');
- else if(key==='first')body=situationHTML(c,false)+`<section class="panel"><h2>Места</h2>${seatsHTML(t,c,true)}</section>`+noteHTML(t,'first',host)+(host?`<details class="panel"><summary>Ситуация не подходит группе?</summary><p>Замените её — роли и записи этого раунда начнутся заново.</p><div class="case-pick"><select id="change-case" aria-label="Другая ситуация">${themeOptions(c.id)}</select>${btn('apply-case','Заменить')}</div></details>`:'');
- else if(key==='observe')body=situationHTML(c,false)+noteHTML(t,'first',false)+noteHTML(t,'observed',host);
- else if(key==='resource')body=situationHTML(c,false)+resourcePanel(r,host);
- else if(key==='quickResource')body=situationHTML(c,false)+noteHTML(t,'observed',host)+resourcePanel(r,host);
- else if(key==='retry')body=situationHTML(c,false)+chosenResource(t)+noteHTML(t,'first',false)+noteHTML(t,'retry',host);
- else if(key==='compare')body=comparePanel(t)+noteHTML(t,'consequences',host)+turnPanel(t,host)+situationHTML(c,false);
- else if(key==='decision')body=comparePanel(t)+noteHTML(t,'decision',host)+situationHTML(c,false);
- else if(key==='quickDecision')body=comparePanel(t)+noteHTML(t,'decision',host)+situationHTML(c,false);
- else if(key==='reflect')body=reflectPanel(c)+noteHTML(t,'reflection',host)+(host&&lastPlanned?`<details class="panel"><summary>Хотите разобрать ещё одну ситуацию?</summary><p>Добавит ещё ${state.settings.duration===15?15:40} минут. Записи этого раунда сохранятся.</p>${nextCaseSelect(c)}<div class="actions">${btn('extra-round','Начать ещё один раунд')}</div></details>`:'');
- else if(key==='break')body=`<section class="panel"><h2>Перерыв</h2><p>Время размяться. Записи первого раунда сохранены — их можно посмотреть в итогах.</p>${host?nextCaseSelect(c):''}</section>`;
- else if(key==='summary')body=`<section class="panel"><h2>Что получилось в раундах</h2>${state.rounds.filter(x=>x.number<r.number+1).map(x=>x.teams.map(tt=>`<p><strong>Раунд ${x.number}${state.settings.teams>1?`, команда ${tt.number}`:''} · ${esc(E.by('situations',tt.caseId).title)}.</strong> Решение: ${esc(tt.notes.decision.trim())||'<span class="muted">не записано</span>'}</p>`).join('')).join('')}</section>`+noteHTML(t,'meeting',host);
- const nextLabel=last?(key==='break'?'Начать второй раунд →':lastPlanned?'Завершить встречу →':'Следующий раунд →'):'Далее →';
- app.innerHTML=`<div class="game-head"><p class="eyebrow">${state.settings.duration} минут · ${esc(E.FORMATS[state.settings.duration].title)}${state.rounds.length>1||planned>1?` · раунд ${r.number} из ${Math.max(planned,state.rounds.length)}`:''}${host?'':' · экран участников'}</p>
- <ol class="stepper" aria-label="Этапы раунда">${r.stages.map((k,i)=>`<li${i===r.stage?' aria-current="step"':''}>${host?`<button type="button" data-stage="${i}" ${i===r.stage?'aria-current="step"':''}>${i+1}. ${esc(E.STAGES[k].title)}</button>`:`<span>${i+1}. ${esc(E.STAGES[k].title)}</span>`}</li>`).join('')}</ol></div>
- <p id="game-status" class="notice" role="status" ${warning?'':'hidden'}>${esc(warning)}</p>
- ${pauseOpen?`<section class="panel pause-panel" role="region" aria-label="Пауза"><h2>Пауза</h2><p>Таймер остановлен. Можно выйти из роли и назвать своё имя, перейти в наблюдатели, продолжить без сцены${r.stage<=1?' или заменить ситуацию':''}. Объяснять причины не нужно.</p><div class="actions">${btn('pause-continue','Продолжить','primary')}${!state.settings.solo&&c.id!=='С-17'&&!t.discussion?btn('pause-talk','Продолжить без сцены'):''}</div></section>`:''}
- <section class="stage-card" aria-labelledby="stage-title">${teamTabs}<p class="stage-count">Этап ${r.stage+1} из ${r.stages.length} · ${st.minutes} ${minutesWord(st.minutes)}</p><h1 id="stage-title">${esc(st.title)}</h1>
- <p class="stage-do">${esc(st.do)}</p><dl class="stage-meta"><div><dt>Кто</dt><dd>${esc(st.who)}</dd></div><div><dt>Результат</dt><dd>${esc(st.result)}</dd></div></dl></section>
- ${body}
- <div class="game-bar" role="group" aria-label="Управление этапом">
-  <div class="timer${r.remaining<=0?' done':''}"><span id="session-timer" role="timer" aria-label="Осталось на этапе">${mmss(r.remaining)}</span>${host?btn('timer-toggle',r.running?'Пауза':'Старт','timer-btn','aria-live="polite"')+btn('add-minute','+1 мин','ghost'):''}</div>
-  ${host?`<div class="bar-actions">${r.stage>0?btn('prev-stage','←','ghost','aria-label="Предыдущий этап"'):''}${btn('pause-group','Пауза для группы','ghost')}${btn('next-stage',nextLabel,'primary')}</div>`:''}
- </div>
- <p class="muted meeting-left">До конца встречи по плану: около ${Math.max(0,Math.round(E.remainingMeeting(state)/60))} ${minutesWord(Math.round(E.remainingMeeting(state)/60))}.</p>
- <section class="tools"><h2 class="sr-only">Инструменты встречи</h2><div class="actions">${btn('view-mode',host?'Экран для участников':'Вернуться к управлению')}${btn('large-screen',document.body.classList.contains('game-large')?'Обычный шрифт':'Крупный шрифт')}${host?btn('export-summary','Скачать итоги (.txt)')+btn('export-session','Сохранить файл встречи')+btn('new-session','Новая встреча'):''}</div><p class="muted small-print">Записи хранятся в этом браузере и не уходят на сервер. <a href="rules.html#safety">Когда это не дилемма →</a></p></section>`;
- bind(r,t,c,key,host,last,lastPlanned);
- clock();
- if(focusId&&$(focusId)&&focusId.startsWith('note-')){const el=$(focusId);el.focus({preventScroll:true});}
-}
-function goTo(index){try{advanceClock();E.move(state,index);pauseOpen=false;warning='';save();render();focusTop();}catch(err){say(err.message,true);}}
-function bind(r,t,c,key,host,last,lastPlanned){
- app.querySelectorAll('[data-stage]').forEach(b=>b.onclick=()=>goTo(Number(b.dataset.stage)));
- app.querySelectorAll('[data-team]').forEach(b=>b.onclick=()=>{state.currentTeam=Number(b.dataset.team);save();render();});
- app.querySelectorAll('[data-note]').forEach(el=>el.oninput=()=>{if(el.dataset.note==='meeting')state.meeting=el.value;else E.current(state).team.notes[el.dataset.note]=el.value;save();});
- app.querySelectorAll('[data-resource]').forEach(b=>b.onclick=()=>{const id=b.dataset.resource;E.resource(state,E.current(state).team.resource===id?null:id);if(state.settings.teams>1&&E.current(state).team.resource){const miss=r.teams.findIndex(x=>!x.resource);if(miss>=0)state.currentTeam=miss;}warning='';save();render();});
- if($('random-resource'))$('random-resource').onclick=()=>{const pool=c.resourceIds.filter(id=>id!==t.resource);E.resource(state,E.pick(pool));save();render();};
- if($('role-set'))$('role-set').onchange=()=>{E.setRoles(state,Number($('role-set').value));save();render();};
- if($('discussion-mode'))$('discussion-mode').onchange=()=>{E.setDiscussion(state,$('discussion-mode').checked);save();render();};
- if($('apply-case'))$('apply-case').onclick=()=>{const id=$('change-case').value;if(id===c.id)return;if(confirm('Заменить ситуацию? Роли и записи этого раунда начнутся заново.')){try{E.setCase(state,id);reflectCard=null;save();render();}catch(err){say(err.message,true);}}};
- if($('draw-turn'))$('draw-turn').onclick=()=>{const ids=E.eligibleTurns(state);if(ids.length){E.turn(state,E.pick(ids));save();render();}};
- if($('clear-turn'))$('clear-turn').onclick=()=>{E.turn(state,null);save();render();};
- if($('timer-toggle'))$('timer-toggle').onclick=()=>{advanceClock();if(r.remaining<=0){r.remaining=60;}r.running=!r.running;tick=Date.now();save();clock();};
- if($('add-minute'))$('add-minute').onclick=()=>{advanceClock();r.remaining=Math.min(86400,r.remaining+60);save();clock();};
- if($('prev-stage'))$('prev-stage').onclick=()=>goTo(r.stage-1);
- if($('pause-group'))$('pause-group').onclick=()=>{advanceClock();r.running=false;pauseOpen=true;save();render();$('pause-continue')?.focus();};
- if($('pause-continue'))$('pause-continue').onclick=()=>{pauseOpen=false;render();};
- if($('pause-talk'))$('pause-talk').onclick=()=>{E.setDiscussion(state,true);pauseOpen=false;save();render();};
- if($('next-stage'))$('next-stage').onclick=()=>{
-  if(!last)return goTo(r.stage+1);
-  advanceClock();
-  if(key==='break'){try{E.nextRound(state,$('next-case')?.value||c.id);reflectCard=null;warning='';save();render();focusTop();}catch(err){say(err.message,true);}return;}
-  if(!lastPlanned){try{E.nextRound(state,c.id);save();render();focusTop();}catch(err){say(err.message,true);}return;}
-  if(confirm('Завершить встречу? Все вышли из ролей? Записи сохранятся, их можно будет скачать.')){E.finish(state);save();render();focusTop();}};
- if($('extra-round'))$('extra-round').onclick=()=>{try{E.nextRound(state,$('next-case').value);reflectCard=null;warning='';save();render();focusTop();}catch(err){say(err.message,true);}};
- common();
-}
-function common(){
- if($('view-mode'))$('view-mode').onclick=()=>{state.view=state.view==='host'?'participant':'host';save();render();$('view-mode')?.focus();};
- if($('large-screen'))$('large-screen').onclick=()=>{document.body.classList.toggle('game-large');render();$('large-screen')?.focus();};
- if($('export-summary'))$('export-summary').onclick=()=>download(reportText(),`PEDAGOG-итоги-${stamp()}.txt`,'text/plain;charset=utf-8');
- if($('export-session'))$('export-session').onclick=()=>download(JSON.stringify(state,null,2),`PEDAGOG-встреча-${stamp()}.json`);
- if($('new-session'))$('new-session').onclick=()=>{if(confirm('Начать новую встречу? Текущие записи будут удалены из браузера. Если они нужны, сначала скачайте итоги.')){if(state)state.rounds.forEach(r=>r.running=false);state=null;try{if(!storageConflict&&localStorage.getItem(KEY)===stored){localStorage.removeItem(KEY);stored=null;}}catch{}warning='';renderSetup();focusTop();}};
-}
-function renderResults(){
- app.innerHTML=`<div class="game-intro"><p class="eyebrow">Встреча завершена · ${state.settings.duration} минут</p><h1>Итоги встречи</h1><p class="lead">Два варианта, выбранное решение и выводы — по каждой ситуации. Скачайте или распечатайте, если группа согласна сохранить записи.</p></div>
- <p id="game-status" class="notice" role="status" ${warning?'':'hidden'}>${esc(warning)}</p>
- <div class="actions no-print">${btn('export-summary','Скачать итоги (.txt)','primary')}${btn('print-summary','Распечатать')}${btn('export-session','Сохранить файл встречи')}${btn('reopen','Вернуться к записям')}${btn('new-session','Новая встреча')}</div>
- ${summaryHTML()}
- <section class="panel no-print"><h2>После встречи</h2><p>Через одну-две недели можно коротко спросить коллег: удалось ли попробовать свой шаг и что помешало. Это не отчёт, а продолжение разговора.</p></section>`;
- if($('print-summary'))$('print-summary').onclick=()=>window.print();
- if($('reopen'))$('reopen').onclick=()=>{E.reopen(state);save();render();focusTop();};
- common();
-}
-function clock(){if(!state||!$('session-timer'))return;const r=E.current(state).round;$('session-timer').textContent=mmss(r.remaining);$('session-timer').parentElement.classList.toggle('done',r.remaining<=0);$('session-timer').parentElement.classList.toggle('running',r.running);if($('timer-toggle'))$('timer-toggle').textContent=r.running?'Пауза':r.remaining<=0?'+1 мин и старт':'Старт';}
-
-/* ---------- Запуск ---------- */
-try{stored=localStorage.getItem(KEY);if(stored)state=E.restore(stored);}catch(err){state=null;warning='Сохранённую встречу не удалось открыть: '+(err&&err.message||'файл повреждён')+' Можно начать новую.';}
-setInterval(()=>{const was=state&&!state.completed&&E.current(state).round.running;advanceClock();if(was){save();clock();}},250);
-window.addEventListener('storage',event=>{if(state&&(event.key===KEY||event.key===null))conflict();});
-window.addEventListener('pageshow',event=>{if(state&&event&&event.persisted){state.rounds.forEach(r=>r.running=false);tick=Date.now();clock();}});
-window.addEventListener('pagehide',()=>{if(state){advanceClock();state.rounds.forEach(r=>r.running=false);save();}});
-if(state&&query.get('resume')!=='0'&&!query.get('case')&&!query.get('duration'))render();else renderSetup();
+load();render();
 })();
