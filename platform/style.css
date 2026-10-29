@@ -517,3 +517,10 @@ body.participant .feed .situation-card p{font-size:clamp(17px,1.4vw,21px)}
 @media (max-width:640px){.page-hero .hero-deco{display:none}}
 
 @media (max-width:420px){.letters>.letter{flex-basis:100%}.letter{display:grid;grid-template-columns:52px 1fr;column-gap:12px}.letter b{grid-row:span 2;font-size:46px}}
+
+/* Подсказки ведущему в игре и паспорте ситуации */
+.note-card.frame{margin:0;font-size:15px;line-height:1.5}
+.host-hint summary{font-weight:700}
+.options{margin:0 0 10px;padding-left:22px;display:grid;gap:10px}
+.options li{line-height:1.5}
+.options .muted{display:block;margin-top:2px;font-size:14px}

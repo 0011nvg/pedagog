@@ -1,4 +1,4 @@
-/* ПЕДАГОГ · печатные карточки и листы A4 (редакция 4.0). Размеры — в миллиметрах.
+/* ПЕДАГОГ · печатные карточки и листы A4. Размеры — в миллиметрах.
    Карточка 99 × 140 мм, сетка 2 × 2 без зазоров, поля листа 6 / 8,5 мм, внутреннее безопасное поле 4 мм:
    при неточном совмещении сторон до 2 мм край соседней карточки не попадает на оборот. */
 @page{size:A4 portrait;margin:0}
@@ -20,7 +20,7 @@
 .pc-body{position:relative;height:calc(140mm - 8mm - 8.5mm);border:.35mm solid #DCDDEE;border-top:0;border-radius:0 0 2.6mm 2.6mm;padding:3.4mm 3.8mm;display:flex;flex-direction:column;gap:2mm}
 .pc-body p{margin:0}
 .pc-body.center{justify-content:center;text-align:left}
-.pc-kicker{font:700 6.2pt/1.2 'Onest',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#676C90}
+.pc-kicker{font:700 6.8pt/1.2 'Onest',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#676C90}
 .pc-title{margin:0;font:800 12.5pt/1.05 'Montserrat',sans-serif;text-transform:uppercase;letter-spacing:-.01em;color:#1A1F45}
 .pc-title.sm{font-size:10.5pt}
 .pc-name{margin:0;font:700 11pt/1.15 'Onest',sans-serif;text-transform:none;letter-spacing:0}
@@ -35,29 +35,29 @@
 .pc-badge.xl{width:24mm;height:24mm;font-size:17pt}
 .pc-rolehead{display:flex;gap:3mm;align-items:center}
 .pc-fields{margin:0;display:grid;gap:1.1mm}
-.pc-fields dt{font:700 6.4pt/1.1 'Onest',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676C90;margin-top:.6mm}
+.pc-fields dt{font:700 6.8pt/1.1 'Onest',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676C90;margin-top:.6mm}
 .pc-fields dd{margin:0}
 .pc-ask{margin-top:auto!important;background:#EEEFF8;border-radius:2mm;padding:2.2mm 2.8mm;font-weight:600;color:#28336E}
-.pc-fine{font-size:6.8pt;color:#676C90;line-height:1.3}
+.pc-fine{font-size:7.4pt;color:#676C90;line-height:1.3}
 .pc-evhead{display:flex;gap:3mm;align-items:center}
 .pc-pin{display:inline-grid;place-items:center;width:11mm;height:11mm;flex:0 0 auto;border-radius:50% 50% 50% 1.2mm;transform:rotate(-45deg);background:#E8673F}
 .pc-pin span{transform:rotate(45deg);color:#fff;font:800 12pt/1 'Montserrat',sans-serif}
 .pc-pin.xl{width:24mm;height:24mm;margin-bottom:5mm}.pc-pin.xl span{font-size:22pt}
 .pc-enter{display:flex;flex-wrap:wrap;align-items:center;gap:1.2mm;font-size:8pt}
 .pc-enter{flex-direction:column;align-items:flex-start;gap:1.2mm}.pc-who{display:flex;align-items:center;gap:1.6mm}.pc-note{color:#676C90;font-size:7.4pt}
-.pc-steps,.pc-assign{width:100%;border-collapse:collapse;font-size:7.4pt;line-height:1.28}
-.pc-steps th,.pc-assign th{font:700 6pt/1 'Onest',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676C90;text-align:left;padding:0 1mm 1mm}
+.pc-steps,.pc-assign{width:100%;border-collapse:collapse;font-size:7.8pt;line-height:1.28}
+.pc-steps th,.pc-assign th{font:700 6.6pt/1 'Onest',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676C90;text-align:left;padding:0 1mm 1mm}
 .pc-steps td,.pc-assign td{border-top:.25mm solid #E3E4F4;padding:1.15mm 1mm;vertical-align:top}
 .pc-steps td:nth-child(n+2),.pc-steps th:nth-child(n+2){text-align:right;width:6mm;white-space:nowrap;font-weight:700}
 .pc-steps tr.ev td:first-child{box-shadow:inset .7mm 0 0 #E8673F;padding-left:2mm}
 .pc-assign td:first-child{font-weight:800;width:9mm;text-align:center}
-.pc-safety{margin-top:auto!important;font-size:6.8pt;line-height:1.3;background:#FCE9E2;color:#5A2516;border-radius:2mm;padding:2mm 2.6mm}
+.pc-safety{margin-top:auto!important;font-size:7.4pt;line-height:1.3;background:#FCE9E2;color:#5A2516;border-radius:2mm;padding:2mm 2.6mm}
 .pc-qs{margin:0;padding-left:4.4mm;display:grid;gap:1.8mm;font-size:9pt;font-weight:600;color:#28336E}
 .pc-lines{flex:1 1 auto;background:repeating-linear-gradient(to bottom,transparent 0,transparent 7mm,#C9CCEB 7mm,#C9CCEB 7.25mm)}
 .pc-lines.short{flex:0 0 22mm}
 .pc-checks{margin:0;padding:0;list-style:none;display:grid;gap:1.6mm}
-.pc-checks li{display:flex;gap:2mm;align-items:center}
-.pc-checks li::before{content:"";width:3.2mm;height:3.2mm;border:.35mm solid #6874C2;border-radius:.8mm;flex:0 0 auto}
+.pc-checks li{display:flex;gap:2mm;align-items:flex-start}
+.pc-checks li::before{content:"";margin-top:.5mm;width:3.2mm;height:3.2mm;border:.35mm solid #6874C2;border-radius:.8mm;flex:0 0 auto}
 
 /* Оборот */
 .pc-back{height:100%;padding:0}
@@ -111,4 +111,11 @@
   #printOutput{position:absolute;left:0;top:0;padding:0;gap:0;display:block}
   .pc-sheet,.pc-a4{box-shadow:none;break-after:page;page-break-after:always;zoom:1!important}
 }
-.k-host .pc-body{font-size:8pt;line-height:1.3}.pc-assign{font-size:6.9pt}.k-host .pc-safety{font-size:6.4pt}
+.k-host .pc-body{font-size:8.4pt;line-height:1.3}.pc-assign{font-size:7.6pt}.k-host .pc-safety{font-size:7.2pt}
+/* Карточка ведущего «Возможные подходы» */
+.k-options .pc-body{font-size:8.6pt;line-height:1.33}
+.pc-opts{margin:0;padding-left:4.6mm;display:grid;gap:2.2mm}
+.pc-opts span{display:block;margin-top:.6mm;color:#3F4570;font-size:8pt;font-style:italic}
+.k-options .pc-checks{gap:2.2mm;font-size:8.8pt}
+.pc-frame{margin-top:auto!important;font-size:7.8pt;line-height:1.32;background:#EEEFF8;color:#28336E;border-radius:2mm;padding:2mm 2.6mm}
+.eco .pc-frame{background:#fff;border:.3mm solid #C9CCEB}
