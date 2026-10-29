@@ -1,5 +1,114 @@
-.print-filter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.print-filter-grid label{display:grid;gap:.4rem}.print-selection{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.35rem;max-height:28rem;overflow:auto;padding:.5rem 0;margin:1rem 0}.print-selection label{display:flex;align-items:flex-start;gap:.6rem;padding:.6rem;border:1px solid #ded6cc;border-radius:6px}.print-selection small{display:block;color:#61594f}.print-selection input{margin-top:.3rem;flex:none}.print-output{overflow:auto;margin-top:2rem;background:#e7e3dd;padding:1rem}.print-output:empty{display:none}.print-sheet{box-sizing:border-box;width:210mm;height:297mm;margin:0 auto 1rem;background:white;color:#222;padding:12.5mm 10mm;position:relative;font-family:Arial,sans-serif}.print-output[data-paper=A3] .print-sheet{width:420mm;height:297mm;padding:12.5mm 20mm}.print-card-grid{display:grid;grid-template-columns:190mm;grid-template-rows:132mm 132mm;gap:8mm;transform:translate(var(--offset-x,0),var(--offset-y,0))}.print-output[data-paper=A3] .print-card-grid{grid-template-columns:190mm 190mm;column-gap:0}.print-card{box-sizing:border-box;width:190mm;height:132mm;padding:6mm 7mm;border:.25mm dashed #79736c;overflow:hidden;position:relative;background:#fff;color:#25221e;--print-color:#ad4b35}.print-card.roles{--print-color:#203c52}.print-card.resources{--print-color:#356e64}.print-card.turns{--print-color:#794349}.print-card.reflections{--print-color:#6b602f}.print-card h2{font:700 15pt/1.15 Georgia,serif;margin:3mm 0;color:var(--print-color)}.print-category{font:700 9pt/1.2 Arial,sans-serif;letter-spacing:.4pt;color:var(--print-color,#203c52)}.print-card-text{font:10.5pt/1.32 Arial,sans-serif}.print-card-text p{margin:0 0 2.2mm}.print-card:not(.situations) .print-card-text{font-size:14pt;line-height:1.5;margin-top:8mm}.print-card:not(.situations) h2{font-size:21pt;margin-top:8mm}.print-back{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;background:#faf8f4}.print-back h2{font-size:24pt!important;margin:4mm!important}.print-back p{font-size:12pt;margin:2mm}.back-symbol{font:700 45pt Georgia,serif;color:var(--print-color);line-height:1;margin-top:5mm}.back-motto{letter-spacing:.6pt}.print-sheet-heading,.print-sheet-footer{position:absolute;left:10mm;right:10mm;text-align:center;font:8pt Arial,sans-serif;color:#655f56}.print-sheet-heading{top:5mm}.print-sheet-footer{bottom:4mm}.print-worksheet{box-sizing:border-box;width:210mm;min-height:297mm;background:white;padding:17mm 18mm 20mm;margin:0 auto 1rem;color:#222;position:relative;font:11pt/1.5 Arial,sans-serif}.print-worksheet h2{font:700 24pt/1.2 Georgia,serif;color:#203c52}.print-worksheet h3{font-size:12pt;margin:5mm 0 2mm}.print-worksheet li{margin-bottom:3mm}.print-worksheet footer{font-size:9pt;position:absolute;bottom:10mm;left:18mm;right:18mm;color:#61594f}.writing-lines{height:20mm;background:repeating-linear-gradient(to bottom,transparent 0,transparent 6mm,#d8d4cd 6mm,#d8d4cd 6.2mm)}
-@media(max-width:600px){.print-filter-grid,.print-selection{grid-template-columns:1fr}.print-output{padding:.3rem}}
-@media print{html,body{margin:0!important;padding:0!important;background:white!important}body>*:not(main):not(#app){display:none!important}main,#app{max-width:none!important;margin:0!important;padding:0!important}.print-controls,header,nav,footer:not(.print-worksheet footer),.site-footer,.skip-link{display:none!important}.print-output{display:block!important;padding:0!important;margin:0!important;overflow:visible!important;background:white!important}.print-sheet,.print-worksheet{margin:0!important;break-after:page;page-break-after:always;box-shadow:none!important}.print-sheet:last-child,.print-worksheet:last-child{break-after:auto;page-break-after:auto}.print-card{print-color-adjust:exact;-webkit-print-color-adjust:exact}.print-worksheet{height:297mm;min-height:0}.print-empty{height:132mm}a{color:inherit!important}}
-.print-card.situations{padding:5mm 7mm}.print-card.situations .print-card-text{font-size:9.3pt;line-height:1.25}.print-card.situations .print-card-text p{margin:0 0 1.4mm}.print-card.situations h2{margin:1.5mm 0 2mm}.print-seats{margin:0 0 1.4mm;padding:1.2mm 2.4mm;border-left:.8mm solid var(--print-color);background:#f7f4ef}.print-seats>b{display:block;font-size:8.5pt;letter-spacing:.4pt;text-transform:uppercase;color:var(--print-color)}.print-seat{margin:.6mm 0}.print-seat small{color:#61594f;font-size:8.5pt}.print-seat i{color:#3d3832}
-.print-worksheet ul,.print-worksheet ol{margin:0 0 2mm;padding-left:6mm}.print-worksheet li{margin-bottom:1.5mm}.print-small{font-size:10pt;line-height:1.4}.print-schedule{width:100%;border-collapse:collapse;font-size:10.5pt;margin:2mm 0 3mm}.print-schedule th,.print-schedule td{border:.25mm solid #c8cec8;padding:1.4mm 2mm;text-align:left;vertical-align:top}.print-schedule th{background:#e5eee8}.print-schedule small{font-weight:400}.print-schedule .total td{font-weight:700}.print-stages{margin:0;font-size:9.5pt;line-height:1.27}.print-stages dt{font-weight:700;margin-top:1.4mm}.print-stages dt small{font-weight:400;color:#61594f}.print-stages dd{margin:0}.print-safety{margin-top:3mm;padding:1mm 4mm;font-size:10pt;line-height:1.35;border:.5mm solid #ad4b35;border-radius:2mm}.print-safety h3{margin-top:1mm;color:#ad4b35}.print-two{display:grid;grid-template-columns:1fr 1fr;gap:6mm}.print-tear{margin-top:6mm;border-top:.4mm dashed #79736c;padding-top:1mm}.print-cut{font-size:9pt;color:#61594f;margin:0}
+/* ПЕДАГОГ · печатные карточки и листы A4 (редакция 4.0). Размеры — в миллиметрах.
+   Карточка 99 × 140 мм, сетка 2 × 2 без зазоров, поля листа 6 / 8,5 мм, внутреннее безопасное поле 4 мм:
+   при неточном совмещении сторон до 2 мм край соседней карточки не попадает на оборот. */
+@page{size:A4 portrait;margin:0}
+.pc-out *,.pc-out *::before,.pc-out *::after,#printOutput *,#printOutput *::before,#printOutput *::after{box-sizing:border-box}
+.pc-out{display:grid;gap:10mm;justify-content:center;padding:6mm 0}
+.pc-sheet,.pc-a4{position:relative;width:210mm;height:297mm;background:#fff;color:#1A1F45;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08),0 18px 40px -18px rgba(23,29,69,.4);font-family:'Onest',system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.pc-grid{position:absolute;left:6mm;top:8.5mm;width:198mm;height:280mm;display:grid;grid-template-columns:99mm 99mm;grid-template-rows:140mm 140mm}
+.pc-card{position:relative;width:99mm;height:140mm;overflow:hidden;padding:4mm;font-size:8.8pt;line-height:1.34}
+.k-role .pc-body{font-size:9.1pt;line-height:1.34}.k-role .pc-fields{gap:1.5mm}
+.pc-card.k-empty{padding:0}
+.cm{position:absolute;background:#8B8FB5;display:block}
+.cm.v{width:.2mm;height:5mm}.cm.h{height:.2mm;width:4mm}
+.cm.v[style*="bottom"]{top:auto}
+.pc-sheetnote{position:absolute;left:0;right:0;bottom:1.6mm;margin:0;text-align:center;font-size:6pt;color:#9599C4;letter-spacing:.04em}
+
+/* Лицевая */
+.pc-head{display:flex;justify-content:space-between;align-items:center;height:8.5mm;padding:0 3.4mm;border-radius:2.6mm 2.6mm 0 0;background:var(--k);color:#fff;font:600 6.4pt/1 'Onest',sans-serif;letter-spacing:.06em;text-transform:uppercase}
+.pc-head b{font:800 7.4pt/1 'Montserrat',sans-serif;letter-spacing:.08em}
+.pc-body{position:relative;height:calc(140mm - 8mm - 8.5mm);border:.35mm solid #DCDDEE;border-top:0;border-radius:0 0 2.6mm 2.6mm;padding:3.4mm 3.8mm;display:flex;flex-direction:column;gap:2mm}
+.pc-body p{margin:0}
+.pc-body.center{justify-content:center;text-align:left}
+.pc-kicker{font:700 6.2pt/1.2 'Onest',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#676C90}
+.pc-title{margin:0;font:800 12.5pt/1.05 'Montserrat',sans-serif;text-transform:uppercase;letter-spacing:-.01em;color:#1A1F45}
+.pc-title.sm{font-size:10.5pt}
+.pc-name{margin:0;font:700 11pt/1.15 'Onest',sans-serif;text-transform:none;letter-spacing:0}
+.pc-a4 h3{text-transform:none;letter-spacing:0}
+.pc-big{font-size:9.6pt;line-height:1.38}
+.pc-opening{border-left:.8mm solid #8ED3CB;padding:1.2mm 0 1.2mm 2.6mm;font-weight:600;font-size:9.2pt;background:#F4F4F9;border-radius:0 1.6mm 1.6mm 0}
+.pc-foot{margin-top:auto;display:grid;gap:1.4mm;padding-top:2mm;border-top:.3mm dashed #C9CCEB;font-size:7.4pt;color:#3F4570}
+.pc-badges{display:flex;gap:1mm;flex-wrap:wrap}
+.pc-badge{display:inline-grid;place-items:center;width:6.6mm;height:6.6mm;border-radius:50%;background:var(--c);color:var(--i);font:800 5.6pt/1 'Montserrat',sans-serif;vertical-align:middle;flex:0 0 auto}
+.pc-badge.q{background:#fff;color:#9599C4;box-shadow:inset 0 0 0 .35mm #C9CCEB}
+.pc-badge.lg{width:11mm;height:11mm;font-size:8.4pt}
+.pc-badge.xl{width:24mm;height:24mm;font-size:17pt}
+.pc-rolehead{display:flex;gap:3mm;align-items:center}
+.pc-fields{margin:0;display:grid;gap:1.1mm}
+.pc-fields dt{font:700 6.4pt/1.1 'Onest',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676C90;margin-top:.6mm}
+.pc-fields dd{margin:0}
+.pc-ask{margin-top:auto!important;background:#EEEFF8;border-radius:2mm;padding:2.2mm 2.8mm;font-weight:600;color:#28336E}
+.pc-fine{font-size:6.8pt;color:#676C90;line-height:1.3}
+.pc-evhead{display:flex;gap:3mm;align-items:center}
+.pc-pin{display:inline-grid;place-items:center;width:11mm;height:11mm;flex:0 0 auto;border-radius:50% 50% 50% 1.2mm;transform:rotate(-45deg);background:#E8673F}
+.pc-pin span{transform:rotate(45deg);color:#fff;font:800 12pt/1 'Montserrat',sans-serif}
+.pc-pin.xl{width:24mm;height:24mm;margin-bottom:5mm}.pc-pin.xl span{font-size:22pt}
+.pc-enter{display:flex;flex-wrap:wrap;align-items:center;gap:1.2mm;font-size:8pt}
+.pc-enter{flex-direction:column;align-items:flex-start;gap:1.2mm}.pc-who{display:flex;align-items:center;gap:1.6mm}.pc-note{color:#676C90;font-size:7.4pt}
+.pc-steps,.pc-assign{width:100%;border-collapse:collapse;font-size:7.4pt;line-height:1.28}
+.pc-steps th,.pc-assign th{font:700 6pt/1 'Onest',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#676C90;text-align:left;padding:0 1mm 1mm}
+.pc-steps td,.pc-assign td{border-top:.25mm solid #E3E4F4;padding:1.15mm 1mm;vertical-align:top}
+.pc-steps td:nth-child(n+2),.pc-steps th:nth-child(n+2){text-align:right;width:6mm;white-space:nowrap;font-weight:700}
+.pc-steps tr.ev td:first-child{box-shadow:inset .7mm 0 0 #E8673F;padding-left:2mm}
+.pc-assign td:first-child{font-weight:800;width:9mm;text-align:center}
+.pc-safety{margin-top:auto!important;font-size:6.8pt;line-height:1.3;background:#FCE9E2;color:#5A2516;border-radius:2mm;padding:2mm 2.6mm}
+.pc-qs{margin:0;padding-left:4.4mm;display:grid;gap:1.8mm;font-size:9pt;font-weight:600;color:#28336E}
+.pc-lines{flex:1 1 auto;background:repeating-linear-gradient(to bottom,transparent 0,transparent 7mm,#C9CCEB 7mm,#C9CCEB 7.25mm)}
+.pc-lines.short{flex:0 0 22mm}
+.pc-checks{margin:0;padding:0;list-style:none;display:grid;gap:1.6mm}
+.pc-checks li{display:flex;gap:2mm;align-items:center}
+.pc-checks li::before{content:"";width:3.2mm;height:3.2mm;border:.35mm solid #6874C2;border-radius:.8mm;flex:0 0 auto}
+
+/* Оборот */
+.pc-back{height:100%;padding:0}
+.pc-back-frame{position:relative;height:100%;border-radius:2.6mm;border:.5mm solid var(--a);background:linear-gradient(180deg,#fff 0,#fff 55%,color-mix(in srgb,var(--a) 9%,#fff) 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;color:var(--a)}
+.pc-route{position:absolute;left:4mm;right:4mm;bottom:12mm;height:16mm;width:calc(100% - 8mm);opacity:.55}
+.pc-back-center{display:flex;flex-direction:column;align-items:center;gap:2.4mm;text-align:center;padding:0 8mm;margin-top:-10mm}
+.pc-mark{width:22mm;height:22mm}
+.pc-back-word{margin:0;font:800 15pt/1 'Montserrat',sans-serif;letter-spacing:.06em;color:#1A1F45}
+.pc-back-label{margin:0;font:800 9pt/1.1 'Montserrat',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--a)}
+.pc-back-sub{margin:0;font-size:8.4pt;line-height:1.35;color:#3F4570}
+.pc-back-id{position:absolute;top:3.2mm;right:4mm;margin:0;font:800 7pt/1 'Montserrat',sans-serif;color:var(--a);letter-spacing:.06em}
+
+/* Экономичная печать: без заливок, только контуры */
+.eco .pc-head{background:#fff;color:var(--k);border:.4mm solid var(--k);border-bottom-width:.9mm}
+.eco .pc-head b{color:var(--k)}
+.eco .pc-back-frame{background:#fff}
+.eco .pc-opening,.eco .pc-ask{background:#fff;border:.3mm solid #C9CCEB}
+.eco .pc-safety{background:#fff;border:.3mm solid #E8673F}
+.eco .pc-badge.xl,.eco .pc-pin.xl{transform:scale(.7)}
+.eco .pc-pin.xl{transform:rotate(-45deg) scale(.7)}
+
+/* Пробный лист */
+.pc-cal{position:relative;height:100%;border:.3mm dashed #9599C4;border-radius:2.6mm;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2mm}
+.pc-cal b{font:800 40pt/1 'Montserrat',sans-serif;color:#3B4A99}
+.pc-cal span{font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#676C90}
+.pc-cal i{position:absolute;left:50%;top:50%;width:14mm;height:14mm;margin:-7mm 0 0 -7mm;border:.3mm solid #E8673F;border-radius:50%;display:block;background:linear-gradient(#E8673F,#E8673F) center/100% .3mm no-repeat,linear-gradient(#E8673F,#E8673F) center/.3mm 100% no-repeat;opacity:.6}
+
+/* Листы A4 */
+.pc-a4{padding:16mm 18mm 18mm;font-size:10pt;line-height:1.45}
+.pc-a4 h1{margin:2mm 0 5mm;font:800 20pt/1.05 'Montserrat',sans-serif;text-transform:uppercase;color:#1A1F45}
+.pc-a4 h2{margin:6mm 0 2mm;font:800 12pt/1.1 'Montserrat',sans-serif;text-transform:uppercase}
+.pc-a4 h3{margin:4mm 0 1.4mm;font:700 10pt/1.2 'Onest',sans-serif}
+.pc-a4 p{margin:0 0 2.4mm}
+.pc-a4 footer{position:absolute;left:18mm;right:18mm;bottom:10mm;font-size:7.6pt;color:#676C90;border-top:.3mm solid #DCDDEE;padding-top:2mm}
+.pc-table{width:100%;border-collapse:collapse;margin:3mm 0;font-size:9pt}
+.pc-table th,.pc-table td{border-bottom:.3mm solid #DCDDEE;padding:1.6mm 2mm;text-align:left;vertical-align:top}
+.pc-table td:nth-child(n+2),.pc-table th:nth-child(n+2){text-align:right}
+.pc-table tr.total td{font-weight:800;border-bottom:0}
+.pc-table.form td{height:12mm;text-align:left!important}.pc-table.form td:first-child{width:52mm;font-weight:700;color:#3F4570}
+.pc-stages{margin:3mm 0;display:grid;gap:1.6mm;font-size:9pt}
+.pc-stages dt{font-weight:800}.pc-stages dd{margin:0 0 1mm}
+.pc-list{padding-left:5mm;display:grid;gap:2mm}
+.pc-wl{background:repeating-linear-gradient(to bottom,transparent 0,transparent 6.4mm,#C9CCEB 6.4mm,#C9CCEB 6.65mm)}
+.pc-a4 .pc-safety{margin-top:4mm!important;font-size:8.6pt}
+
+@media screen{.pc-out .pc-sheet,.pc-out .pc-a4{zoom:var(--preview-zoom,.62)}}
+@media print{
+  body{background:#fff!important}
+  body *{visibility:hidden}
+  #printOutput,#printOutput *{visibility:visible}
+  #printOutput{position:absolute;left:0;top:0;padding:0;gap:0;display:block}
+  .pc-sheet,.pc-a4{box-shadow:none;break-after:page;page-break-after:always;zoom:1!important}
+}
+.k-host .pc-body{font-size:8pt;line-height:1.3}.pc-assign{font-size:6.9pt}.k-host .pc-safety{font-size:6.4pt}
