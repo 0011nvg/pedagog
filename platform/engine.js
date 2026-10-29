@@ -1,90 +1,183 @@
-/* Pure session model. The card registry remains src/deck.js. */
+/* ПЕДАГОГ · модель онлайн-сессии (schema 4). Без DOM: используется в браузере и в тестах.
+   Форматы 15 / 40 / 90 минут задаются здесь и только здесь: интерфейс, правила и печатная
+   инструкция берут регламент из FORMATS. */
 (function (root) {
   'use strict';
   const D = root.PEDAGOG_DATA;
-  const VERSION = 3;
+  const VERSION = 4;
+  const MAX_PEOPLE = 40, MAX_ROUNDS = 6;
+
+  /* Этапы. note — ключ общей записи команды (или null). */
+  const STAGES = {
+    situation: {title:'Ситуация и позиции', note:null,
+      do:'Прочитайте ситуацию вслух. Добровольцы выбирают места, остальные — наблюдатели. Напомните: можно наблюдать, сменить роль или попросить паузу без объяснений; реальных детей и коллег не называем.',
+      who:'Все', result:'Все понимают, что произошло, кто есть кто и чего персонажи не знают.'},
+    first: {title:'Первая попытка', note:'first',
+      do:'Начните с начальной реплики и сыграйте 2–3 минуты так, как действовали бы сами. Не нужно решать всё — достаточно первого шага. Наблюдатели записывают точные слова.',
+      who:'Участники сцены; наблюдатели записывают', result:'Есть первый вариант действий.'},
+    observe: {title:'Что заметили', note:'observed',
+      do:'Сначала говорят участники сцены: чего пытались добиться? Затем наблюдатели: одна точная реплика, что она изменила, какой вопрос остался. Обсуждаем действия, не людей.',
+      who:'Сначала исполнители, затем наблюдатели', result:'Названы одна сработавшая и одна неудачная реплика, есть вопрос для второй попытки.'},
+    resource: {title:'Ресурс', note:null,
+      do:'Выберите карточку ресурса из подходящих к ситуации. Договоритесь, в какой момент разговора её применить и что именно изменится. Остальные условия остаются прежними.',
+      who:'Вся команда', result:'Выбран ресурс и названо одно действие, которое меняем.'},
+    retry: {title:'Вторая попытка', note:'retry',
+      do:'Сыграйте ключевой момент ещё раз, применив ресурс. Можно поменяться ролями или передать место наблюдателю.',
+      who:'Участники сцены (можно новые)', result:'Есть второй вариант, который можно сравнить с первым.'},
+    compare: {title:'Сравнение последствий', note:'consequences',
+      do:'Сравните два варианта: что каждый из них даст завтра и через месяц? Что изменилось для каждой стороны? Чего мы по-прежнему не знаем? По желанию проверьте решение карточкой поворота.',
+      who:'Все', result:'Понятно, чем различаются варианты и где их пределы.'},
+    decision: {title:'Решение', note:'decision',
+      do:'Выберите действие, которое считаете обоснованным: что делаем, кто, к какому сроку и как поймём, что получилось. Несогласие можно записать — единогласие не обязательно.',
+      who:'Все', result:'Записано действие, ответственный, срок и признак результата.'},
+    reflect: {title:'Личный вывод', note:'reflection',
+      do:'Выйдите из ролей: назовите своё имя. Обсудите вопросы ниже. Каждый для себя записывает один шаг, который попробует в работе. Делиться им не обязательно.',
+      who:'Каждый за себя, затем по желанию — вслух', result:'У каждого есть личный шаг; у группы — общий вывод, если она согласна его записать.'},
+    quickResource: {title:'Что заметили и что изменим', note:'observed',
+      do:'Одна-две точные реплики от наблюдателей: что сработало, что нет. Затем выберите карточку ресурса и договоритесь, что измените во второй попытке.',
+      who:'Все', result:'Выбран ресурс и названо одно изменение.'},
+    quickDecision: {title:'Сравнение и решение', note:'decision',
+      do:'Чем различались попытки? Какой вариант вы выбрали бы в реальной школе и почему? Запишите действие, срок и признак результата.',
+      who:'Все', result:'Есть обоснованный выбор между двумя вариантами.'},
+    break: {title:'Перерыв', note:null,
+      do:'Пять минут перерыва. Перед ним выберите ситуацию второго раунда — лучше из другой темы, чтобы сравнить подходы.',
+      who:'Ведущий', result:'Выбрана ситуация второго раунда.'},
+    summary: {title:'Итог встречи', note:'meeting',
+      do:'Сравните решения двух раундов: что в них общего? Какой приём или вопрос группа хочет использовать в работе? Запишите только то, с чем все согласны.',
+      who:'Все', result:'Есть общий вывод встречи (по согласию группы).'}
+  };
+  const P40 = [['situation',5],['first',5],['observe',4],['resource',3],['retry',5],['compare',5],['decision',5],['reflect',8]];
+  const FORMATS = {
+    15: {title:'Знакомство', lead:'Одна ситуация, две короткие попытки, личный вывод.', people:'2–8 участников',
+         rounds:[[['situation',3],['first',2],['quickResource',2],['retry',2],['quickDecision',3],['reflect',3]]]},
+    40: {title:'Полный разбор', lead:'Одна ситуация: две попытки, наблюдения, ресурс, сравнение и решение.', people:'3–12 участников',
+         rounds:[P40]},
+    90: {title:'Командная встреча', lead:'Два полных раунда по разным ситуациям, перерыв и общий итог.', people:'6–40 участников, команды по 4–6',
+         rounds:[[...P40,['break',5]],[...P40,['summary',5]]]}
+  };
   const DURATIONS = [15, 40, 90];
-  const COMPATIBLE_DURATIONS = [...DURATIONS,20,45,60,120];
-  const STAGES = [
-    ['welcome','Договорённости','Назовите цель. Каждый вправе выбрать наблюдение, пропустить ответ или остановиться. Используйте вымышленные ситуации; не называйте реальных детей и коллег.'],
-    ['prepare','Ситуация и позиции','Прочитайте ситуацию, цель и ограничения. Распределите места между добровольцами. Наблюдателям: отметьте точную реплику, возможное последствие и уточняющий вопрос.'],
-    ['first','Первая попытка','Начните с заданной реплики и предложите один реалистичный шаг. Не добавляйте неизвестные факты.'],
-    ['observe','Наблюдение','Назовите услышанные слова. Отделите наблюдение от предположения. Обсуждайте действия, а не личность участника.'],
-    ['resource','Новая опора','Выберите совместимый ресурс. Назовите одно действие, которое попробуете изменить. Остальные условия остаются прежними.'],
-    ['retry','Повторная попытка','Вернитесь к ключевой реплике и попробуйте выбранное действие. Сравните обе попытки: что изменилось, а что осталось трудным?'],
-    ['consequence','Проверка решения','Обсудите возможные последствия завтра и через месяц. При согласии всех и наличии времени можно проверить решение одним разрешённым поворотом.'],
-    ['decision','Решение и следующий шаг','Согласуйте действие, ответственного, срок и признак результата. Зафиксируйте, что требует уточнения. Разногласие можно сохранить; единогласие не обязательно.'],
-    ['reflect','Рефлексия','Назовите своё имя и выйдите из роли. Обсудите вопросы ситуации. Личный вывод можно записать отдельно и не передавать группе.'],
-    ['close','Завершение раунда','Каждый по желанию называет один посильный шаг. Проверьте, что все вышли из роли. Общий итог сохраняйте только с согласия группы.']
-  ];
-  const by = (kind,id) => D[kind].find(c=>c.id===id);
+  const NOTE_KEYS = ['first','observed','retry','consequences','decision','reflection'];
+
+  const by = (kind,id) => (D[kind]||[]).find(c=>c.id===id);
   const copy = v => JSON.parse(JSON.stringify(v));
   const pick = (items,rng=Math.random) => items[Math.min(items.length-1,Math.floor(rng()*items.length))];
   const integer = (v,a,b) => Number.isInteger(v)&&v>=a&&v<=b;
-  const text = v => typeof v==='string'&&v.length<=12000;
-  function budget(minutes){
-    if(minutes===40)return [2,5,4,3,3,4,4,5,7,3].map(v=>v*60);
-    if(minutes===15)return [1,2,1,1,1,2,1,2,3,1].map(v=>v*60);
-    if(minutes===20)return [2,3,2,1,1,2,2,2,3,2].map(v=>v*60);
-    const weights=[.08,.12,.10,.08,.08,.10,.10,.12,.14,.08];
-    const secs=weights.map(w=>Math.floor(minutes*60*w));
-    secs[9]+=minutes*60-secs.reduce((a,b)=>a+b,0);return secs;
+  const text = (v,max=12000) => typeof v==='string'&&v.length<=max;
+
+  function format(minutes){ const f=FORMATS[minutes]; if(!f) throw new Error('Неизвестный формат.'); return f; }
+  function roundPlan(minutes,index){ const f=format(minutes); const r=f.rounds[Math.min(index,f.rounds.length-1)];
+    /* Дополнительные раунды сверх плана идут по 40-минутной схеме без перерыва. */
+    const plan = index<f.rounds.length ? r : (minutes===15 ? f.rounds[0] : P40);
+    return {stages:plan.map(([k])=>k), plan:plan.map(([,m])=>m*60)}; }
+  function totalMinutes(minutes){ return format(minutes).rounds.flat().reduce((a,[,m])=>a+m,0); }
+  function teamsFor(people){ return people>12 ? Math.min(8,Math.ceil(people/6)) : 1; }
+
+  function positions(c,roleSet=0){
+    return c.roleSets[roleSet].map((roleId,i)=>({seat:i+1,roleId,who:c.seats[i].who,brief:c.seats[i].brief,ask:c.seats[i].ask}));
   }
-  function positions(c,roleSetIndex=0){
-    const ids=c.roleSets[roleSetIndex];
-    return ids.map((roleId,index)=>{
-      let position=by('roles',roleId).title;
-      if(['С-03','С-20'].includes(c.id))position=index===0?'Автор предложения / задания':'Коллега, который высказывает возражение';
-      if(c.id==='С-14')position=index===0?'Классный руководитель: организует процедуру выбора':index===1?'Первый родитель: ценит содержательную программу платной экскурсии':'Второй родитель: ценит доступность и добровольность участия';
-      return {roleId,position,seat:index+1};
-    });
+  function seatCount(c,roleSet){ return c.roleSets[roleSet].length; }
+  function team(c,number,size,rng){
+    const roleSet=c.roleSets.indexOf(pick(c.roleSets,rng));
+    return {number,size,caseId:c.id,roleSet,discussion:c.id==='С-17'||size<seatCount(c,roleSet),resource:null,turn:null,
+      notes:{first:'',observed:'',retry:'',consequences:'',decision:'',reflection:''}};
   }
-  function team(c,number,size,roleMode,rng){
-    const set=roleMode==='manual'?0:c.roleSets.indexOf(pick(c.roleSets,rng));
-    return {number,size,caseId:c.id,roleSet:set,assignments:positions(c,set),discussion:c.id==='С-17'||size<c.roleSets[set].length,resource:null,turn:null,conditions:{consent:false,time:false,swap:false,written:false,condition:false,tool:false,volunteer:false},notes:{first:'',observed:'',retry:'',consequences:'',decision:'',reflection:''}};
+  function makeRound(s,number,caseId,rng){
+    const c=by('situations',caseId); if(!c) throw new Error('Ситуация не найдена.');
+    const {stages,plan}=roundPlan(s.settings.duration,number-1);
+    const sizes=Array.from({length:s.settings.teams},(_,i)=>Math.floor(s.settings.people/s.settings.teams)+(i<s.settings.people%s.settings.teams?1:0));
+    return {number,stage:0,remaining:plan[0],running:false,stages,plan,teams:sizes.map((size,i)=>team(c,i+1,size,rng))};
   }
   function create(settings,rng=Math.random){
-    if(!integer(settings.people,1,40)||!integer(settings.teams,1,8)||settings.teams>settings.people||!COMPATIBLE_DURATIONS.includes(settings.duration)||!by('situations',settings.caseId)||!['random','manual'].includes(settings.roleMode)||!['random','choice'].includes(settings.resourceMode)||typeof settings.facilitator!=='boolean')throw new Error('Проверьте количество участников, команд и настройки.');
-    const count=settings.duration>=90?2:1;
-    const plan=budget(settings.duration/count);
-    const c=by('situations',settings.caseId);
-    const teams=Array.from({length:settings.teams},(_,i)=>team(c,i+1,Math.floor(settings.people/settings.teams)+(i<settings.people%settings.teams?1:0),settings.roleMode,rng));
-    return {schema:VERSION,deckVersion:D.version,settings:copy(settings),started:new Date().toISOString(),currentRound:0,currentTeam:0,plannedRounds:count,view:'host',completed:false,rounds:[{number:1,stage:0,remaining:plan[0],running:false,plan,teams}]};
+    const people=settings&&settings.people, duration=settings&&settings.duration, caseId=settings&&settings.caseId;
+    if(!integer(people,1,MAX_PEOPLE)) throw new Error('Укажите число участников от 1 до 40.');
+    if(!DURATIONS.includes(duration)) throw new Error('Выберите формат: 15, 40 или 90 минут.');
+    if(!by('situations',caseId)) throw new Error('Выберите ситуацию из списка.');
+    const s={schema:VERSION,deckVersion:D.version,settings:{people,duration,caseId,teams:teamsFor(people),solo:people===1},
+      started:new Date().toISOString(),currentRound:0,currentTeam:0,view:'host',completed:false,meeting:'',rounds:[]};
+    s.rounds.push(makeRound(s,1,caseId,rng));
+    return s;
   }
-  function current(s){const round=s.rounds[s.currentRound];return {round,team:round.teams[s.currentTeam],situation:by('situations',round.teams[s.currentTeam].caseId)};}
-  function setRoles(s,index){const {team:t,situation:c}=current(s);if(!integer(index,0,c.roleSets.length-1))throw new Error('Недопустимый состав ролей.');t.roleSet=index;t.assignments=positions(c,index);if(t.size<t.assignments.length)t.discussion=true;if(t.turn&&!eligibleTurns(s).includes(t.turn))t.turn=null;}
-  function setCase(s,id){const c=by('situations',id);if(!c)throw new Error('Ситуация отсутствует.');const {round,team:t}=current(s);round.teams[s.currentTeam]=team(c,t.number,t.size,s.settings.roleMode,Math.random);}
-  function resource(s,id){const {team:t,situation:c}=current(s);if(!c.resourceIds.includes(id))throw new Error('Ресурс несовместим.');t.resource=id;t.turn=null;t.conditions.tool=false;t.conditions.condition=false;}
-  function eligibleTurns(s){const {team:t,situation:c,round:r}=current(s),f=t.conditions;if(s.settings.duration<=20||!t.resource||!f.consent||!f.time||r.stage<6)return [];
+  function current(s){ const round=s.rounds[s.currentRound]; const t=round.teams[s.currentTeam]; return {round,team:t,situation:by('situations',t.caseId),key:round.stages[round.stage]}; }
+  function plannedRounds(s){ return format(s.settings.duration).rounds.length; }
+  function needsResource(round,index){ return round.stages.slice(0,index+1).includes('retry'); }
+  function missingResources(round){ return round.teams.filter(t=>!t.resource).map(t=>t.number); }
+
+  function setRoles(s,index,teamIndex=s.currentTeam){ const t=s.rounds[s.currentRound].teams[teamIndex],c=by('situations',t.caseId);
+    if(!integer(index,0,c.roleSets.length-1)) throw new Error('Такого состава нет.');
+    t.roleSet=index; if(t.size<seatCount(c,index)) t.discussion=true; if(t.turn&&!eligibleTurns(s).includes(t.turn)) t.turn=null; }
+  function setDiscussion(s,on){ const {team:t,situation:c}=current(s); if(c.id==='С-17'||t.size<seatCount(c,t.roleSet)||s.settings.solo){t.discussion=true;return;} t.discussion=!!on; if(t.discussion&&t.turn==='К-02')t.turn=null; }
+  function setCase(s,id,rng=Math.random){ const c=by('situations',id); if(!c) throw new Error('Ситуация не найдена.');
+    const r=s.rounds[s.currentRound]; if(r.stage>1) throw new Error('Ситуацию можно заменить только на первых двух этапах раунда.');
+    r.teams=r.teams.map(t=>team(c,t.number,t.size,rng)); if(s.currentRound===0) s.settings.caseId=id; }
+  function resource(s,id,teamIndex=s.currentTeam){ const t=s.rounds[s.currentRound].teams[teamIndex],c=by('situations',t.caseId);
+    if(id===null){t.resource=null;t.turn=null;return;}
+    if(!c.resourceIds.includes(id)) throw new Error('Этот ресурс не подходит к ситуации.'); t.resource=id; }
+  function eligibleTurns(s){ const {round:r,team:t,situation:c,key}=current(s);
+    if(s.settings.duration===15||key!=='compare'||!t.resource) return [];
     return c.turnIds.filter(id=>{
-      if(id==='К-02'&&(!f.swap||t.discussion||t.size<t.assignments.length))return false;
-      if(id==='К-03'&&!f.written)return false;
-      if(id==='К-05'&&(!f.condition||!c.note.includes('Для К-05:')))return false;
-      if(id==='К-06'&&(!f.tool||!c.note.includes('Для К-06:')))return false;
-      if(id==='К-07'&&(!f.volunteer||t.size<=t.assignments.length||!c.note.includes('Для К-07:')))return false;
-      return true;
+      if(id==='К-02'&&(t.discussion||s.settings.solo)) return false;
+      if(['К-05','К-06','К-07'].includes(id)&&!c.note.includes('Для '+id)) return false;
+      if(id==='К-07'&&t.size<=seatCount(c,t.roleSet)) return false;
+      return true; }); }
+  function turn(s,id){ if(id===null){current(s).team.turn=null;return;} if(!eligibleTurns(s).includes(id)) throw new Error('Этот поворот сейчас недоступен.'); current(s).team.turn=id; }
+  function move(s,index){ const r=current(s).round; if(!integer(index,0,r.stages.length-1)) throw new Error('Такого этапа нет.');
+    if(index===r.stage) return;
+    if(index>r.stage&&needsResource(r,index)){ const miss=missingResources(r); if(miss.length) throw new Error(r.teams.length>1?`Сначала выберите ресурс для команд: ${miss.join(', ')}.`:'Сначала выберите карточку ресурса — без неё вторая попытка не даст материала для сравнения.'); }
+    r.stage=index; r.remaining=r.plan[index]; r.running=false; }
+  function nextRound(s,caseId,rng=Math.random){ if(s.rounds.length>=MAX_ROUNDS) throw new Error('В одной встрече — не больше шести раундов.');
+    if(!by('situations',caseId)) throw new Error('Ситуация не найдена.');
+    s.rounds.forEach(r=>r.running=false); s.rounds.push(makeRound(s,s.rounds.length+1,caseId,rng)); s.currentRound=s.rounds.length-1; s.currentTeam=0; s.completed=false; }
+  function finish(s){ s.rounds.forEach(r=>r.running=false); s.completed=true; }
+  function reopen(s){ s.completed=false; }
+  function remainingMeeting(s){ const r=s.rounds[s.currentRound]; let sec=r.remaining; for(let i=r.stage+1;i<r.plan.length;i++)sec+=r.plan[i];
+    for(let ri=s.currentRound+1;ri<plannedRounds(s);ri++) sec+=roundPlan(s.settings.duration,ri).plan.reduce((a,b)=>a+b,0); return sec; }
+
+  /* Подсказка этапа с учётом режима (совет коллег / один участник / С-17). */
+  function stageCopy(s){ const {round:r,team:t,situation:c,key}=current(s); const d=STAGES[key];
+    let {title,do:doText,who,result}=d;
+    const solo=s.settings.solo, talk=t.discussion||solo;
+    if(talk&&(key==='first'||key==='retry')){
+      title=key==='first'?'Первый вариант':'Второй вариант';
+      doText=solo?(key==='first'?'Запишите, что вы сказали бы в ответ на начальную реплику и что ответил бы собеседник. Посмотрите на ситуацию с каждого места по очереди.':'Перепишите ключевую реплику с учётом выбранного ресурса. Как ответил бы собеседник теперь?')
+                 :(key==='first'?'Совет коллег: без инсценировки сформулируйте первый вариант — что и какими словами сказали бы. Учтите позицию каждого персонажа.':'Совет коллег: перескажите первый вариант с учётом ресурса. Что меняется в словах и последствиях?');
+      who=solo?'Вы':'Вся группа';
+    }
+    if(solo&&key==='situation'){doText='Прочитайте ситуацию и карточки мест. Попробуйте коротко ответить на вопрос каждого персонажа — так вы увидите случай с разных сторон.';who='Вы';}
+    if(solo&&key==='observe'){doText='Перечитайте первый вариант глазами каждого персонажа: какая фраза помогла бы ему, а какая — задела? Чего вы не знаете?';who='Вы';}
+    if(solo&&key==='reflect'){doText='Ответьте себе на вопросы ниже и запишите один шаг, который попробуете в работе.';who='Вы';}
+    if(c.id==='С-17'&&['situation','first','retry'].includes(key)) doText+=' Только обсуждение: состояние человека не изображают.';
+    return {key,title,do:doText,who,result,minutes:Math.round(r.plan[r.stage]/60),note:d.note};
+  }
+
+  function validate(s){
+    if(!s||typeof s!=='object'||s.schema!==VERSION||s.deckVersion!==D.version||!s.settings) return false;
+    const st=s.settings;
+    if(!integer(st.people,1,MAX_PEOPLE)||!DURATIONS.includes(st.duration)||!by('situations',st.caseId)||st.teams!==teamsFor(st.people)||st.solo!==(st.people===1)) return false;
+    if(!['host','participant'].includes(s.view)||typeof s.completed!=='boolean'||!text(s.started,40)||!Number.isFinite(Date.parse(s.started))||!text(s.meeting)) return false;
+    if(!Array.isArray(s.rounds)||!integer(s.rounds.length,1,MAX_ROUNDS)||!integer(s.currentRound,0,s.rounds.length-1)||!integer(s.currentTeam,0,st.teams-1)) return false;
+    return s.rounds.every((r,ri)=>{
+      if(!r||r.number!==ri+1) return false;
+      const exp=roundPlan(st.duration,ri);
+      if(JSON.stringify(r.stages)!==JSON.stringify(exp.stages)||JSON.stringify(r.plan)!==JSON.stringify(exp.plan)) return false;
+      if(!integer(r.stage,0,r.stages.length-1)||!Number.isFinite(r.remaining)||r.remaining<0||r.remaining>86400||typeof r.running!=='boolean') return false;
+      if(r.running&&(s.completed||ri!==s.currentRound)) return false;
+      if(!Array.isArray(r.teams)||r.teams.length!==st.teams||r.teams.reduce((n,t)=>n+(t&&t.size||0),0)!==st.people) return false;
+      const retryAt=r.stages.indexOf('retry'); if(retryAt>=0&&r.stage>=retryAt&&missingResources(r).length) return false;
+      return r.teams.every((t,ti)=>{ const c=t&&by('situations',t.caseId);
+        if(!c||t.number!==ti+1||!integer(t.size,1,MAX_PEOPLE)||!integer(t.roleSet,0,c.roleSets.length-1)||typeof t.discussion!=='boolean') return false;
+        if((c.id==='С-17'||t.size<seatCount(c,t.roleSet))&&!t.discussion) return false;
+        if(!(t.resource===null||c.resourceIds.includes(t.resource))||!(t.turn===null||c.turnIds.includes(t.turn))) return false;
+        if(t.turn&&!t.resource) return false;
+        return t.notes&&NOTE_KEYS.every(k=>text(t.notes[k]))&&Object.keys(t.notes).length===NOTE_KEYS.length; });
     });
   }
-  function turn(s,id){if(!eligibleTurns(s).includes(id))throw new Error('Условия поворота не выполнены.');current(s).team.turn=id;}
-  function nextRound(s,caseId,rng=Math.random){const c=by('situations',caseId);if(!c)throw new Error('Неизвестная ситуация.');if(s.rounds.length>=20)throw new Error('Не более 20 раундов в одной сессии.');const plan=budget(s.settings.duration/s.plannedRounds);s.rounds.forEach(r=>r.running=false);s.rounds.push({number:s.rounds.length+1,stage:0,remaining:plan[0],running:false,plan,teams:s.rounds[0].teams.map(t=>team(c,t.number,t.size,s.settings.roleMode,rng))});s.currentRound=s.rounds.length-1;s.currentTeam=0;s.completed=false;}
-  function move(s,index){if(!integer(index,0,STAGES.length-1))throw new Error('Неверный этап.');const r=current(s).round;if(index===r.stage)return;if(index>=5&&r.teams.some(t=>!t.resource))throw new Error('Сначала выберите ресурс для каждой команды: переключайте команды сверху.');r.stage=index;r.remaining=r.plan[index];r.running=false;}
-  function stageCopy(s){const {round:r,team:t,situation:c}=current(s);let [key,title,prompt]=STAGES[r.stage];
-    if(t.discussion){if(key==='first'){title='Первый вариант решения';prompt='Совет коллег: рассмотрите интересы всех персонажей и сформулируйте первый вариант решения. Инсценировка не проводится.';}if(key==='retry'){title='Пересмотр решения';prompt='Совет коллег: примените выбранный ресурс к первоначальному решению. Сравните два варианта и условия их применения.';}}
-    if(s.settings.duration<=20&&key==='consequence')prompt='Сравните возможные последствия двух решений. В мини-сессии дополнительный поворот не используется: оставьте время на выводы и рефлексию.';
-    if(c.id==='С-17'&&['prepare','observe','consequence'].includes(key))prompt+=' Только совет коллег; состояние человека не разыгрывается.';
-    return {key,title,prompt};
-  }
-  function validate(s){
-    if(!s||typeof s!=='object'||s.schema!==VERSION||s.deckVersion!==D.version||!s.settings)return false;
-    try{create(s.settings);}catch{return false;}
-    if(s.plannedRounds!==(s.settings.duration>=90?2:1))return false;
-    if(!['host','participant'].includes(s.view)||typeof s.completed!=='boolean'||!text(s.started)||!Number.isFinite(Date.parse(s.started))||![1,2].includes(s.plannedRounds)||!Array.isArray(s.rounds)||!integer(s.rounds.length,1,20)||!integer(s.currentRound,0,s.rounds.length-1)||!integer(s.currentTeam,0,s.settings.teams-1))return false;
-    return s.rounds.every((r,ri)=>r&&r.number===ri+1&&integer(r.stage,0,9)&&Number.isFinite(r.remaining)&&r.remaining>=0&&r.remaining<=86400&&typeof r.running==='boolean'&&(!s.completed||!r.running)&&(!r.running||ri===s.currentRound)&&Array.isArray(r.plan)&&r.plan.length===10&&r.plan.every((v,i)=>v===budget(s.settings.duration/s.plannedRounds)[i])&&Array.isArray(r.teams)&&r.teams.length===s.settings.teams&&r.teams.reduce((n,t)=>n+(t?.size||0),0)===s.settings.people&&r.teams.every((t,ti)=>{
-      const c=t&&by('situations',t.caseId);if(!c||t.number!==ti+1||!integer(t.size,1,40)||!integer(t.roleSet,0,c.roleSets.length-1)||JSON.stringify(t.assignments)!==JSON.stringify(positions(c,t.roleSet))||typeof t.discussion!=='boolean'||((c.id==='С-17'||t.size<t.assignments.length)&&!t.discussion)||!(t.resource===null||c.resourceIds.includes(t.resource))||!(t.turn===null||c.turnIds.includes(t.turn))||!t.notes||!['first','observed','retry','consequences','decision','reflection'].every(k=>text(t.notes[k]))||!t.conditions||!['consent','time','swap','written','condition','tool','volunteer'].every(k=>typeof t.conditions[k]==='boolean'))return false;
-      if(t.turn){const probe=copy(s);probe.currentRound=ri;probe.currentTeam=ti;probe.rounds[ri].stage=6;probe.settings.duration=60;/* Preserve turns in historical mini-session saves; new mini-session turns stay disabled. */if(!eligibleTurns(probe).includes(t.turn))return false;}return true;
-    }));
-  }
-  function restore(raw){if(typeof raw!=='string'||raw.length>4000000)throw new Error('Файл слишком большой или повреждён.');const s=JSON.parse(raw);if(!validate(s))throw new Error('Файл не соответствует текущей версии игры.');s.rounds.forEach(r=>r.running=false);return s;}
-  root.PEDAGOG_SESSION={VERSION,DURATIONS,STAGES,by,pick,positions,budget,create,current,setRoles,setCase,resource,eligibleTurns,turn,nextRound,move,stageCopy,validate,restore};
-  if(typeof module!=='undefined'&&module.exports)module.exports=root.PEDAGOG_SESSION;
+  function restore(raw){ if(typeof raw!=='string'||raw.length>2000000) throw new Error('Файл слишком большой или повреждён.');
+    let s; try{ s=JSON.parse(raw); }catch{ throw new Error('Это не файл сохранения игры.'); }
+    if(s&&s.schema===3) throw new Error('Это сохранение прежней версии игры (до 29.10.2026). Его можно открыть как текст, но продолжить в новой версии нельзя.');
+    if(!validate(s)) throw new Error('Файл не соответствует текущей версии игры.');
+    s.rounds.forEach(r=>r.running=false); return s; }
+
+  root.PEDAGOG_SESSION={VERSION,DURATIONS,FORMATS,STAGES,NOTE_KEYS,by,pick,positions,seatCount,roundPlan,totalMinutes,teamsFor,create,current,plannedRounds,missingResources,
+    setRoles,setDiscussion,setCase,resource,eligibleTurns,turn,move,nextRound,finish,reopen,remainingMeeting,stageCopy,validate,restore};
+  if(typeof module!=='undefined'&&module.exports) module.exports=root.PEDAGOG_SESSION;
 })(globalThis);
