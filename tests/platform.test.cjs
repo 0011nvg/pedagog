@@ -1,5 +1,5 @@
 'use strict';
-/* Сайт и реестр: страницы, ссылки, якоря, инварианты ситуаций редакции 4.0. */
+/* Сайт и реестр: страницы, ссылки, якоря, инварианты ситуаций. */
 const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('assert'),cp=require('child_process');
 const root=path.resolve(__dirname,'..');
 const pages=['index','about','game','print','library','cards','rules','methods','author'];
@@ -10,7 +10,7 @@ assert.deepEqual(D.roleTypes.map(t=>t.title),ALLOWED,'допустимые ро�
 const forbidden=/тьютор|педагог дополнительного образования|представител[ья] родительского|родительск(ий|ого) комитет/i;
 assert(!forbidden.test(fs.readFileSync(path.join(root,'src/deck.js'),'utf8').replace(/\/\*[\s\S]*?\*\//g,'')),'запрещённые роли не вернулись в реестр');
 const ids=[...D.situations,...D.resources,...D.reflections,...D.roleTypes].map(c=>c.id);assert.equal(new Set(ids).size,ids.length,'уникальные id');
-assert(D.situations.length>=20);assert(!D.situations.some(c=>c.id==='С-07'),'С-07 исключена автором');
+assert(D.situations.length>=35,'не меньше 35 ситуаций');assert(!D.situations.some(c=>c.id==='С-07'),'С-07 исключена автором');
 const sequences=new Set();
 for(const c of D.situations){
   assert(c.cast.length>=5,c.id+': не меньше пяти ролей');
@@ -22,6 +22,9 @@ for(const c of D.situations){
   assert(new Set(c.cast.map(x=>x.type)).size>=3,c.id+': разные позиции');
   assert(c.dilemma.endsWith('?')&&c.debrief.length===3&&c.note&&c.goal&&c.opening,c.id);
   for(const id of c.resourceIds)assert(D.resources.some(r=>r.id===id));
+  assert(Array.isArray(c.options)&&c.options.length>=2&&c.options.every(o=>o.title&&o.step&&o.result),c.id+': варианты решений с последствиями');
+  assert(Array.isArray(c.takeaways)&&c.takeaways.length>=2,c.id+': профессиональные выводы');
+  assert(D.situations.filter(x=>x.title===c.title).length===1,c.id+': уникальное название');
   sequences.add(c.cast.filter(x=>x.enters).sort((a,b)=>a.enters-b.enters).map(x=>x.type).join('>'));
 }
 assert(sequences.size>=D.situations.length-2,'порядок входа ролей не повторяется');
@@ -35,4 +38,9 @@ assert(fs.readFileSync(path.join(root,'rules.html'),'utf8').includes('id="usage"
 assert(fs.readFileSync(path.join(root,'print.html'),'utf8').includes('src="print-pack.js'),'пакет доступа к печати подключён');
 for(const f of fs.readdirSync(path.join(root,'platform/fonts')).filter(f=>f.endsWith('.woff2')))assert(fs.readFileSync(path.join(root,'platform/style.css'),'utf8').includes(f),'шрифт подключён: '+f);
 const missing=fs.readFileSync(path.join(root,'404.html'),'utf8');for(const m of missing.matchAll(/(?:href|src)="([^"]+)"/g))assert(/^(#|https?:|data:|\/pedagog\/)/.test(m[1]),'relative 404 link: '+m[1]);
+/* Удалённые по решению автора элементы не возвращаются в интерфейс. */
+const gone=/Редакция \d|редакция \d|Карта школы|другом компьютере|Встреча прежней редакции|не тема игрового выбора|не тема для игрового|id="import-file"|id="map"|id="safety"/;
+for(const f of [...pages.map(p=>p+'.html'),'404.html','platform/session.js','platform/print.js','platform/catalog.js'])assert(!gone.test(fs.readFileSync(path.join(root,f),'utf8')),'удалённый элемент вернулся: '+f);
+assert(!fs.readFileSync(path.join(root,'platform/art.js'),'utf8').includes('M18.6 13.2h10.8'),'эмблема с буквой П удалена');
+const art=fs.readFileSync(path.join(root,'index.html'),'utf8');assert(art.includes('>ШКОЛА</text>')&&art.includes('twinkle'),'школа с надписью и мерцающие звёзды на главной');
 console.log(`PASS platform: ${D.situations.length} ситуаций, ${D.situations.reduce((n,c)=>n+c.cast.length,0)} ролей, ${sequences.size} разных порядков входа; 9 страниц, ссылки и якоря.`);

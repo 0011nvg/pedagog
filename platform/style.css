@@ -109,9 +109,9 @@ main{display:block}
 
 /* ---------- Главный экран ---------- */
 .hero{position:relative;overflow:hidden;background:var(--indigo);color:#fff;padding:clamp(40px,5vw,72px) 0 0}
-.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,700px);padding-bottom:clamp(150px,15vw,220px)}
-.hero h1{margin:0 0 24px;font-size:clamp(36px,4.6vw,66px);line-height:1}
-.hero h1 .dim{display:block}
+.hero-grid{position:relative;z-index:2;display:grid;grid-template-columns:minmax(0,740px);padding-bottom:clamp(150px,15vw,220px)}
+.hero h1{margin:0 0 24px;font-size:clamp(32px,4vw,56px);line-height:1.02}
+.hero h1 .dim,.hero h1 .ln{display:block}
 .hero .lead{color:#DCDEF4;max-width:34em}
 .hero .pill{color:#fff;border-color:rgba(255,255,255,.5);margin-bottom:26px}
 .hero-facts{display:flex;flex-wrap:wrap;gap:10px 28px;margin:30px 0 0;padding:0;list-style:none}
@@ -122,7 +122,11 @@ main{display:block}
 @media (prefers-reduced-motion:no-preference){
   .pin-drop{animation:pinDrop .7s cubic-bezier(.2,.9,.3,1.3) both}
   .twinkle{animation:twinkle 3.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  .marker-pop{animation:markerPop .6s cubic-bezier(.2,.9,.3,1.4) both;transform-box:fill-box;transform-origin:center}
+  .marker-halo{animation:halo 2.8s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
 }
+@keyframes markerPop{from{opacity:0;transform:scale(.3)}to{opacity:1;transform:scale(1)}}
+@keyframes halo{0%,100%{transform:scale(.8);opacity:.16}50%{transform:scale(1.3);opacity:.36}}
 @keyframes pinDrop{from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:none}}
 @keyframes twinkle{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(.7)}}
 
@@ -136,7 +140,18 @@ main{display:block}
 .stop.final .pin{background:var(--teal)}
 .stop h3{font-size:17px;margin:4px 0 0}
 .stop p{font-size:14.5px;line-height:1.5;color:var(--ink-2);margin:0}
-.stop .enter{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--muted)}
+.stop .enter{display:flex;align-items:flex-start;flex-wrap:nowrap;gap:5px;font-size:13px;font-weight:600;color:var(--muted);margin:0}
+.stop .enter i{flex:0 0 auto;margin-top:2px;width:12px;height:12px;border-radius:50%;background:var(--c);box-shadow:0 0 0 2px #fff,0 0 0 3px var(--rule)}
+.stop .enter span{margin-left:3px;flex:1 1 auto;min-width:0}
+.stop .shift{font-size:13.5px;line-height:1.45;font-weight:600;color:var(--indigo);margin:0;padding-left:12px;border-left:3px solid var(--lav)}
+.stop.event .shift{color:#A2401F;border-color:#F3A27A}.stop.final .shift{color:var(--teal-900,#145752);border-color:var(--teal)}
+/* Зачем играть: три коротких ответа сразу под первым экраном */
+.why-band{padding:clamp(40px,5vw,64px) 0 0}
+.why{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.why article{background:var(--paper);border-radius:var(--r-lg);padding:24px 24px 22px;box-shadow:0 18px 40px -30px rgba(23,29,69,.45)}
+.why-mark{display:block;width:34px;height:6px;border-radius:3px;background:var(--c);margin-bottom:14px}
+.why h2{font-size:19px;margin:0 0 8px;text-transform:none;letter-spacing:0}
+.why p{margin:0;font-size:15.5px;line-height:1.55;color:var(--ink-2)}
 
 /* ---------- Карточки и панели ---------- */
 .panel{background:var(--paper);border-radius:var(--r-lg);padding:clamp(22px,3vw,36px);box-shadow:var(--shadow)}
@@ -163,11 +178,12 @@ main{display:block}
 .band-indigo .role-chip .badge{box-shadow:0 0 0 3px rgba(255,255,255,.12)}
 
 /* Семь опор */
-.letters{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px}
+.letters{display:flex;flex-wrap:wrap;justify-content:center;gap:14px}
+.letters>.letter{flex:0 1 calc((100% - 42px) / 4)}
 .letter{position:relative;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:var(--r-lg);padding:20px 16px 18px;min-height:220px;display:flex;flex-direction:column;gap:10px}
 .letter b{font:800 64px/.9 var(--display);color:var(--aqua)}
-.letter h3{font-size:14.5px;margin:0;color:#fff;hyphens:auto;overflow-wrap:anywhere}
-.letter p{font-size:13.5px;line-height:1.45;color:#C9CDEC;margin:0;hyphens:auto}
+.letter h3{font-size:16px;line-height:1.25;margin:0;color:#fff;hyphens:manual;overflow-wrap:normal;word-break:normal}
+.letter p{font-size:14.5px;line-height:1.5;color:#C9CDEC;margin:0;hyphens:manual}
 
 /* Форматы */
 .format-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
@@ -270,7 +286,7 @@ textarea{min-height:110px;resize:vertical;line-height:1.5}
 /* ---------- Каталог ситуаций ---------- */
 .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:26px}
 .filters input[type=search]{flex:1 1 260px;border-radius:var(--pill);padding-left:20px}
-.filters select{width:auto;border-radius:var(--pill);padding-right:36px}
+.filters select{width:auto;max-width:100%;min-width:0;border-radius:var(--pill);padding-right:36px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{border:1.5px solid var(--rule);background:var(--paper);border-radius:var(--pill);padding:8px 14px;font:600 14px var(--text);color:var(--ink-2);cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:#fff}
@@ -451,7 +467,6 @@ body.participant .feed .situation-card p{font-size:clamp(17px,1.4vw,21px)}
 
 /* ---------- Адаптив ---------- */
 @media (max-width:1100px){
-  .letters{grid-template-columns:repeat(4,minmax(0,1fr))}
   .game-grid,.setup,.print-builder,.passport{grid-template-columns:1fr}
   .cast,.setup-summary,.print-side,.passport .situation-card{position:static}
 }
@@ -462,8 +477,9 @@ body.participant .feed .situation-card p{font-size:clamp(17px,1.4vw,21px)}
   .site-nav .nav-cta{margin:6px 0 0;text-align:center}
   #menuToggle{display:inline-flex;align-items:center}
   .hero-grid{padding-bottom:0}
-  .hero-land{position:relative;height:320px;margin-top:16px}
+  .hero-land{position:relative;height:360px;margin-top:16px}
   .route{grid-template-columns:repeat(3,minmax(0,1fr));row-gap:34px}
+  .why{grid-template-columns:1fr;gap:12px}
   .route::before{display:none}
   .grid.three,.format-tiles{grid-template-columns:1fr}
   .grid.four{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -479,8 +495,9 @@ body.participant .feed .situation-card p{font-size:clamp(17px,1.4vw,21px)}
   .route{grid-template-columns:1fr;gap:18px}
   .stop{display:grid;grid-template-columns:56px 1fr;gap:6px 16px;align-items:start}
   .stop .pin{grid-row:span 3}
-  .letters{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .letter{min-height:0}
+  .letters>.letter{flex-basis:calc((100% - 14px) / 2)}
+  .letter{min-height:0;padding:18px 14px}
+  .why{grid-template-columns:1fr}
   .grid.four{grid-template-columns:1fr}
   .case-grid{grid-template-columns:1fr}
   .dur{grid-template-columns:1fr}
@@ -498,3 +515,13 @@ body.participant .feed .situation-card p{font-size:clamp(17px,1.4vw,21px)}
 @media print{.site-header,.site-footer,.skip{display:none!important}body{background:#fff}}
 .split .section-head h2{font-size:clamp(26px,2.8vw,38px)}
 @media (max-width:640px){.page-hero .hero-deco{display:none}}
+
+@media (max-width:420px){.letters>.letter{flex-basis:100%}.letter{display:grid;grid-template-columns:52px 1fr;column-gap:12px}.letter b{grid-row:span 2;font-size:46px}}
+
+/* Подсказки ведущему в игре и паспорте ситуации */
+.note-card.frame{margin:0;font-size:15px;line-height:1.5}
+.host-hint summary{font-weight:700}
+.options{margin:0 0 10px;padding-left:22px;display:grid;gap:10px}
+.options li{line-height:1.5}
+.options .muted{display:block;margin-top:2px;font-size:14px}
+@media (max-width:380px){.btn,.button{white-space:normal;text-align:center;line-height:1.2;padding:10px 18px;height:auto}}

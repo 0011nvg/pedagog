@@ -1,5 +1,6 @@
 /* ПЕДАГОГ · графика (оригинальные SVG, без внешних изображений).
-   Мотив — «маршрут ситуации»: пунктирная дорога, метки ролей, линии-траектории разных взглядов. */
+   Мотив — «маршрут ситуации»: волнистая дорога к школе с маркерами этапов, звёзды, горы;
+   буквенные метки ролей — только там, где речь о ролях (лента взглядов, бейджи). */
 (function(root){
 'use strict';
 const D=root.PEDAGOG_DATA;
@@ -9,35 +10,65 @@ const star=(x,y,s,fill='#fff',cls='')=>`<path class="${cls}" fill="${fill}" d="M
 function pin(x,y,typeId,{scale=1,delay=0,label}={}){const t=T(typeId);const k=scale;
   return `<g transform="translate(${x} ${y}) scale(${k})"><g class="pin-drop" style="animation-delay:${delay}s"><ellipse cx="0" cy="2" rx="9" ry="3" fill="#171D45" opacity=".18"/><path d="M0 0C-5 -9 -17 -17 -17 -30A17 17 0 1 1 17 -30C17 -17 5 -9 0 0Z" fill="${t.color}" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/><circle cx="0" cy="-30" r="12" fill="#fff"/><text x="0" y="-26" text-anchor="middle" font-family="Montserrat,Onest,sans-serif" font-weight="800" font-size="10.5" fill="${t.color==='#F3A27A'||t.color==='#E0A64E'||t.color==='#62B9AF'?'#2A1D17':t.color}">${label||t.abbr}</text></g></g>`;}
 
-function mark(size=44){return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" aria-hidden="true" focusable="false"><path d="M24 46C21 40 7 31 7 18.5A17 17 0 0 1 41 18.5C41 31 27 40 24 46Z" fill="#3B4A99"/><circle cx="24" cy="18.5" r="11.5" fill="#fff"/><path d="M18.6 13.2h10.8v11.4h-3.1v-8.6h-4.6v8.6h-3.1z" fill="#3B4A99"/><circle cx="38.5" cy="38" r="4.5" fill="#E8673F"/><circle cx="9" cy="39.5" r="3.4" fill="#2A958E"/></svg>`;}
+/* Знак игры — стилизованное здание школы (без букв): корпус, центральный вход с табличкой, звезда. */
+function mark(size=44){return `<svg viewBox="0 0 48 48" width="${size}" height="${size}" aria-hidden="true" focusable="false"><path d="M3 43h42" stroke="#C9CCEB" stroke-width="2.4" stroke-linecap="round"/><rect x="4" y="20" width="40" height="23" rx="2.5" fill="#3B4A99"/><rect x="16.5" y="11" width="15" height="32" rx="2" fill="#2A958E"/><rect x="19" y="14.5" width="10" height="4" rx="1.2" fill="#fff"/><rect x="21" y="32" width="6" height="11" rx="1.5" fill="#FFD98A"/><g fill="#fff"><rect x="7.5" y="24.5" width="3.6" height="4.2" rx=".8"/><rect x="12" y="24.5" width="3.6" height="4.2" rx=".8"/><rect x="7.5" y="32.5" width="3.6" height="4.2" rx=".8"/><rect x="12" y="32.5" width="3.6" height="4.2" rx=".8"/><rect x="32.4" y="24.5" width="3.6" height="4.2" rx=".8"/><rect x="36.9" y="24.5" width="3.6" height="4.2" rx=".8"/><rect x="32.4" y="32.5" width="3.6" height="4.2" rx=".8"/><rect x="36.9" y="32.5" width="3.6" height="4.2" rx=".8"/><rect x="20.6" y="22.5" width="6.8" height="5" rx=".8"/></g>${star(41,9,5.2,'#E8673F')}</svg>`;}
 
-/* Пейзаж главного экрана во всю ширину: небо, горы, школа на холме и маршрут с метками ролей. */
+/* Маркер остановки на маршруте: без букв, цвет показывает этап (начало, новое обстоятельство, решение). */
+function marker(x,y,color='#C9CCEB',{delay=0,size=1}={}){return `<g transform="translate(${x} ${y}) scale(${size})"><g class="marker-pop" style="animation-delay:${delay}s"><circle class="marker-halo" r="15" fill="${color}" opacity=".28" style="animation-delay:${delay+.6}s"/><circle r="8.5" fill="${color}" stroke="#fff" stroke-width="2.6"/><circle r="2.8" fill="#fff"/></g></g>`;}
+function fir(x,base,h,fill='#28336E'){const w=h*.42;return `<path d="M${x} ${base-h}L${x+w*.62} ${base-h*.45}H${x+w*.32}L${x+w} ${base}H${x-w}L${x-w*.32} ${base-h*.45}H${x-w*.62}Z" fill="${fill}"/>`;}
+function tree(x,base,r,fill){return `<rect x="${x-2}" y="${base-r*1.3}" width="4" height="${r*1.3}" fill="#28336E"/><circle cx="${x}" cy="${base-r*1.5}" r="${r}" fill="${fill}"/>`;}
+
+/* Здание школы: корпус в три этажа, два крыла, выступающий центральный вход с табличкой «ШКОЛА».
+   Окна частью светятся — вечер, в школе ещё идёт работа. Основание здания — линия G. */
+function school(G=448){
+  const win=(x,y,w,h,lit)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="2" fill="${lit?'#FFD98A':'#8FA2E6'}"/><path d="M${x+w/2} ${y+1}V${y+h-1}M${x+1} ${y+h*.42}H${x+w-1}" stroke="${lit?'#F6C266':'#B9C4F0'}" stroke-width="1.4"/>`;
+  const lit=new Set(['m0-1','m1-2','m2-0','m0-3','m2-3','w0-1','w1-0','r1']);
+  const out=[];
+  /* мягкий свет от окон и входа на земле */
+  out.push(`<ellipse cx="1110" cy="${G+4}" rx="230" ry="12" fill="#7581C9"/><ellipse cx="1110" cy="${G+6}" rx="70" ry="9" fill="#FFD98A" opacity=".22"/>`);
+  /* крылья */
+  [[934,'w0'],[1210,'w1']].forEach(([x,k])=>{out.push(`<rect x="${x}" y="${G-76}" width="78" height="76" fill="#DADDF3"/><rect x="${x-3}" y="${G-80}" width="84" height="7" rx="2" fill="#C3C7EA"/>`);
+    [0,1].forEach(r=>[0,1].forEach(c=>out.push(win(x+14+c*32,G-62+r*30,18,21,lit.has(`${k}-${r*2+c}`)))));});
+  /* основной корпус */
+  out.push(`<rect x="1004" y="${G-112}" width="212" height="112" fill="#EEF0FA"/><rect x="1000" y="${G-117}" width="220" height="9" rx="2" fill="#D3D6EF"/><rect x="1004" y="${G-10}" width="212" height="10" fill="#C9CCEB"/>`);
+  [1014,1044,1156,1186].forEach((x,c)=>[0,1,2].forEach(r=>out.push(win(x,G-98+r*30,20,22,lit.has(`m${r}-${c}`)))));
+  /* центральный вход */
+  out.push(`<rect x="1072" y="${G-138}" width="76" height="138" fill="#F8F9FE"/><rect x="1067" y="${G-143}" width="86" height="9" rx="2" fill="#D3D6EF"/>
+   <rect x="1081" y="${G-126}" width="58" height="19" rx="4" fill="#2A958E"/><text x="1110" y="${G-112.2}" text-anchor="middle" font-family="Montserrat,Onest,sans-serif" font-weight="800" font-size="11.5" letter-spacing="1.6" fill="#fff">ШКОЛА</text>
+   ${win(1092,G-98,36,22,false)}${win(1092,G-68,36,22,lit.has('r1'))}
+   <rect x="1084" y="${G-41}" width="52" height="6" rx="3" fill="#2A958E"/>
+   <rect x="1095" y="${G-35}" width="30" height="35" rx="3" fill="#3B4A99"/><rect x="1098.5" y="${G-31}" width="10.5" height="20" rx="1.5" fill="#FFD98A" opacity=".92"/><rect x="1111" y="${G-31}" width="10.5" height="20" rx="1.5" fill="#FFD98A" opacity=".92"/>
+   <rect x="1088" y="${G-2}" width="44" height="4" rx="1.5" fill="#C9CCEB"/><rect x="1083" y="${G+1.5}" width="54" height="3.5" rx="1.5" fill="#B9BEE5"/>`);
+  return `<g class="school" aria-hidden="true">${out.join('')}</g>`;}
+
+/* Дорога-волна от края экрана к дверям школы: цепочка кубических сегментов, на ней маркеры этапов. */
+const ROAD=[[[24,636],[150,606],[230,560],[340,566]],[[340,566],[450,572],[500,618],[620,600]],[[620,600],[740,582],[760,520],[870,524]],[[870,524],[960,527],[990,486],[1060,470]],[[1060,470],[1086,464],[1102,459],[1110,452]]];
+function roadPath(segs){return 'M'+segs[0][0].join(' ')+segs.map(s=>'C'+s.slice(1).map(p=>p.join(' ')).join(' ')).join('');}
+
+/* Пейзаж главного экрана во всю ширину: небо со звёздами, горы, школа на холме и дорога к ней. */
 function heroScene(){
-  const X=1020,Y=318;const win=[];for(let r=0;r<3;r++)for(let c=0;c<5;c++){if(r===2&&c===2)continue;win.push(`<rect x="${X+14+c*36}" y="${Y+24+r*30}" width="16" height="19" rx="3" fill="#8FA2E6"/>`);}
-  const wing=[];for(let r=0;r<2;r++)for(let c=0;c<2;c++)wing.push(`<rect x="${X-34+c*22}" y="${Y+50+r*28}" width="11" height="15" rx="2.5" fill="#8FA2E6"/>`);
-  const pins=[['Ро-01',150,596,.2],['Ро-03',390,566,.35],['Ро-05',640,566,.5],['Ро-08',860,526,.65],['Ро-06',1004,478,.8]];
-  return `<svg class="hero-land" viewBox="0 0 1440 640" preserveAspectRatio="xMaxYMax slice" role="img" aria-label="Иллюстрация: к школе на холме ведёт маршрут, на нём метки пяти ролей">
+  const stars=[[930,96,14,0],[1390,150,10,1.1],[1060,52,8,2],[1330,330,8,.5],[1236,58,9,.8],[960,250,6,1.9],[1032,170,5,2.9],[1188,196,5,1.3],[1410,62,6,2.3],[1290,256,4.5,.3],[1400,420,6,1.6],[1160,120,4,2.6]];
+  const dots=[[905,40],[1100,92],[1290,128],[1350,30],[1365,250],[1010,236],[990,330]];
+  const at=(i,t)=>cubic(...ROAD[i],t).map(Math.round);
+  const marks=[[0,.2,'#C9CCEB',.1],[1,.55,'#C9CCEB',.25],[2,.38,'#E8673F',.4],[2,.92,'#E8673F',.55],[3,.62,'#2A958E',.7]];
+  const d=roadPath(ROAD);
+  return `<svg class="hero-land" viewBox="0 0 1440 640" preserveAspectRatio="xMaxYMax slice" role="img" aria-label="Иллюстрация: вечер, звёзды, горы и ёлки; извилистая дорога ведёт к дверям школы">
   <circle cx="1124" cy="250" r="214" fill="#4352A3"/><circle cx="1124" cy="250" r="142" fill="#4D5CAC"/>
-  ${star(800,120,15,'#fff','twinkle')}${star(1390,150,10,'#fff','twinkle')}${star(960,70,7,'#C9CCEB')}${star(1330,330,8,'#fff','twinkle')}${star(740,300,7,'#C9CCEB')}
+  ${stars.map(([x,y,s,dl])=>star(x,y,s,'#fff','twinkle').replace('<path ',`<path style="animation-delay:${dl}s" `)).join('')}
+  ${dots.map(([x,y],i)=>`<circle class="twinkle" style="animation-delay:${(i*.7)%3}s" cx="${x}" cy="${y}" r="1.8" fill="#DADCF3"/>`).join('')}
+  <path d="M300 640L420 520L500 470L560 500L640 430L720 480L790 420L860 470L930 410L1010 452L1080 400L1160 446L1240 404L1330 450L1440 418V640Z" fill="#4250A3"/>
+  <path d="M640 430L662 448L652 446L646 456L636 446L622 450Z M930 410L952 428L942 426L936 436L926 426L912 430Z M1240 404L1262 422L1252 420L1246 430L1236 420L1222 424Z" fill="#6573C0"/>
   <path d="M430 640L560 470L640 430L690 452L770 380L840 438L900 404L980 446L1040 372L1100 420L1170 384L1250 430L1320 396L1440 430V640Z" fill="#4555A8"/>
+  <path d="M770 380L796 402L784 400L776 412L764 400L748 404Z M1040 372L1066 394L1054 392L1046 404L1034 392L1018 396Z M1170 384L1192 402L1182 400L1176 410L1166 400L1152 404Z" fill="#7684C9"/>
+  ${[[590,482,22],[608,486,16],[712,470,20],[1288,436,18]].map(([x,b,h])=>fir(x,b,h,'#3A479A')).join('')}
   <path d="M0 540C220 500 420 520 620 506C820 492 960 440 1140 444C1260 447 1360 430 1440 432V640H0Z" fill="#6874C2"/>
-  <g>
-   <rect x="${X-44}" y="${Y+34}" width="64" height="88" fill="#C9CCEB"/>${wing.join('')}
-   <rect x="${X}" y="${Y}" width="210" height="122" fill="#EEF0FA"/><rect x="${X}" y="${Y}" width="210" height="10" fill="#DCDDF2"/>
-   ${win.join('')}
-   <rect x="${X+80}" y="${Y-72}" width="50" height="80" fill="#fff"/>
-   <path d="M${X+74} ${Y-68}Q${X+105} ${Y-118} ${X+136} ${Y-68}Z" fill="#2A958E"/>
-   <rect x="${X+103.5}" y="${Y-136}" width="3" height="40" fill="#28336E"/><path d="M${X+106.5} ${Y-134}h22l-6 7 6 7h-22z" fill="#E8673F"/>
-   <circle cx="${X+105}" cy="${Y-42}" r="11" fill="#8FA2E6"/><path d="M${X+105} ${Y-49}v7h5" stroke="#28336E" stroke-width="2" fill="none" stroke-linecap="round"/>
-   <path d="M${X+91} ${Y+122}v-34a14 14 0 0 1 28 0v34z" fill="#3B4A99"/>
-  </g>
-  <g><rect x="${X-70}" y="${Y+84}" width="4" height="40" fill="#28336E"/><circle cx="${X-68}" cy="${Y+74}" r="26" fill="#2A958E"/>
-   <rect x="${X+232}" y="${Y+84}" width="4" height="36" fill="#28336E"/><circle cx="${X+234}" cy="${Y+72}" r="20" fill="#8ED3CB"/>
-   <path d="M${X-108} ${Y+128}L${X-92} ${Y+70}L${X-76} ${Y+128}Z" fill="#28336E"/><path d="M${X-124} ${Y+132}L${X-112} ${Y+88}L${X-100} ${Y+132}Z" fill="#28336E"/>
-   <path d="M${X+262} ${Y+120}L${X+276} ${Y+66}L${X+290} ${Y+120}Z" fill="#28336E"/></g>
+  ${tree(862,448,21,'#2A958E')}${fir(898,452,58)}${fir(920,452,40)}
+  ${school(448)}
+  ${tree(1316,446,17,'#8ED3CB')}${fir(1346,452,54)}${fir(1368,452,36)}
   <path d="M0 600C240 566 480 606 720 586C930 568 1150 548 1440 556V640H0Z" fill="#F4F4F9"/>
-  <path d="M40 636C120 612 200 600 300 590S520 588 640 582S800 560 880 548S1000 486 1110 448" fill="none" stroke="#C9CCEB" stroke-width="5" stroke-dasharray="12 11" stroke-linecap="round"/>
-  ${pins.map(([id,x,y,d])=>pin(x,y,id,{scale:1.25,delay:d})).join('')}
+  <path d="${d}" fill="none" stroke="#AEB6E8" stroke-opacity=".55" stroke-width="15" stroke-linecap="round"/>
+  <path d="${d}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="10 11" stroke-linecap="round"/>
+  ${marks.map(([i,t,c,dl])=>{const [x,y]=at(i,t);return marker(x,y-1,c,{delay:dl,size:1.1});}).join('')}
   </svg>`;}
 
 /* Линии-траектории (две пересекающиеся ленты) с метками ролей на них. */
@@ -65,20 +96,21 @@ function ridge(){return `<svg viewBox="0 0 1440 260" preserveAspectRatio="xMidYM
 /* Иллюстрации для двух способов провести игру. */
 function screenArt(){return `<svg viewBox="0 0 300 220" aria-hidden="true"><rect x="20" y="20" width="260" height="160" rx="16" fill="#28336E"/><rect x="34" y="34" width="232" height="132" rx="8" fill="#EEF0FA"/>
   <path d="M56 118C96 96 120 132 160 112S230 84 248 96" fill="none" stroke="#C9CCEB" stroke-width="4" stroke-dasharray="8 7" stroke-linecap="round"/>
-  ${pin(62,116,'Ро-03',{scale:.8})}${pin(122,118,'Ро-01',{scale:.8})}${pin(186,104,'Ро-05',{scale:.8})}${pin(246,96,'Ро-06',{scale:.8})}
+  ${marker(62,116,'#C9CCEB',{size:.8})}${marker(122,118,'#C9CCEB',{size:.8})}${marker(186,104,'#E8673F',{size:.8})}${marker(246,96,'#2A958E',{size:.8})}
   <rect x="50" y="138" width="90" height="8" rx="4" fill="#C9CCEB"/><rect x="50" y="48" width="120" height="10" rx="5" fill="#3B4A99"/>
   <rect x="130" y="180" width="40" height="22" fill="#28336E"/><rect x="100" y="198" width="100" height="8" rx="4" fill="#28336E"/></svg>`;}
-function cardsArt(){const c=(x,y,r,id,title)=>{const t=T(id);return `<g transform="translate(${x} ${y}) rotate(${r})"><rect width="120" height="168" rx="12" fill="#fff"/><rect width="120" height="34" rx="12" fill="${t.color}"/><rect y="22" width="120" height="12" fill="${t.color}"/><circle cx="24" cy="17" r="10" fill="#fff"/><text x="24" y="21" text-anchor="middle" font-family="Montserrat,sans-serif" font-weight="800" font-size="8.5" fill="${t.color}">${t.abbr}</text><rect x="14" y="50" width="76" height="8" rx="4" fill="#1A1F45"/><rect x="14" y="68" width="92" height="5" rx="2.5" fill="#C9CCEB"/><rect x="14" y="80" width="84" height="5" rx="2.5" fill="#C9CCEB"/><rect x="14" y="92" width="88" height="5" rx="2.5" fill="#C9CCEB"/><rect x="14" y="128" width="92" height="26" rx="8" fill="#EEEFF8"/></g>`;};
+function cardsArt(){const c=(x,y,r,id,title)=>{const t=T(id);return `<g transform="translate(${x} ${y}) rotate(${r})"><rect width="120" height="168" rx="12" fill="#fff"/><rect width="120" height="34" rx="12" fill="${t.color}"/><rect y="22" width="120" height="12" fill="${t.color}"/><circle cx="24" cy="17" r="10" fill="#fff"/><circle cx="24" cy="17" r="4" fill="${t.color}"/><rect x="14" y="50" width="76" height="8" rx="4" fill="#1A1F45"/><rect x="14" y="68" width="92" height="5" rx="2.5" fill="#C9CCEB"/><rect x="14" y="80" width="84" height="5" rx="2.5" fill="#C9CCEB"/><rect x="14" y="92" width="88" height="5" rx="2.5" fill="#C9CCEB"/><rect x="14" y="128" width="92" height="26" rx="8" fill="#EEEFF8"/></g>`;};
   return `<svg viewBox="0 0 320 240" aria-hidden="true">${c(40,60,-14,'Ро-05')}${c(110,40,-2,'Ро-04')}${c(180,50,12,'Ро-01')}</svg>`;}
 
-/* Декор для внутренних страниц: маршрут с тремя метками на холме. */
-function pageDeco(ids=['Ро-03','Ро-01','Ро-05']){return `<svg viewBox="0 0 520 300" aria-hidden="true" focusable="false"><circle cx="360" cy="120" r="110" fill="rgba(255,255,255,.07)"/>
+/* Декор для внутренних страниц: волнистая дорога с маркерами этапов и звёзды (без буквенных меток). */
+function pageDeco(){return `<svg viewBox="0 0 520 300" aria-hidden="true" focusable="false"><circle cx="360" cy="120" r="110" fill="rgba(255,255,255,.07)"/>
   <path d="M0 300V230C120 190 240 220 330 196C420 172 470 150 520 150V300Z" fill="rgba(255,255,255,.12)"/>
-  <path d="M40 270C140 240 220 250 300 222S440 180 500 176" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="4" stroke-dasharray="10 9" stroke-linecap="round"/>
-  ${pin(120,250,ids[0],{scale:1.1,delay:.1})}${pin(290,228,ids[1],{scale:1.1,delay:.25})}${pin(450,182,ids[2],{scale:1.1,delay:.4})}
-  ${star(470,60,11,'#fff','twinkle')}${star(220,90,7,'rgba(255,255,255,.7)')}</svg>`;}
+  <path d="M30 276C110 250 150 226 210 236S300 262 350 232S440 172 500 176" fill="none" stroke="rgba(255,255,255,.22)" stroke-width="12" stroke-linecap="round"/>
+  <path d="M30 276C110 250 150 226 210 236S300 262 350 232S440 172 500 176" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="3" stroke-dasharray="9 9" stroke-linecap="round"/>
+  ${marker(126,252,'#C9CCEB',{delay:.1})}${marker(300,252,'#E8673F',{delay:.25})}${marker(452,180,'#8ED3CB',{delay:.4})}
+  ${star(470,60,11,'#fff','twinkle')}${star(220,90,7,'rgba(255,255,255,.7)','twinkle').replace('<path ','<path style="animation-delay:1.2s" ')}${star(120,150,5,'rgba(255,255,255,.6)','twinkle').replace('<path ','<path style="animation-delay:2.1s" ')}</svg>`;}
 
 function badge(typeId,cls=''){const t=T(typeId);return `<span class="badge ${cls}" style="--c:${t.color};--i:${t.ink}" title="${t.title}">${t.abbr}</span>`;}
 
-root.PEDAGOG_ART={mark,pin,star,heroScene,ribbons,ridge,screenArt,cardsArt,pageDeco,badge};
+root.PEDAGOG_ART={mark,pin,marker,school,star,heroScene,ribbons,ridge,screenArt,cardsArt,pageDeco,badge};
 })(globalThis);

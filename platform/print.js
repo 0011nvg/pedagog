@@ -1,4 +1,6 @@
-/* ПЕДАГОГ · конструктор печатного комплекта. Доступ — по коду автора (PBKDF2 + AES-GCM в браузере, код не сохраняется).
+/* ПЕДАГОГ · конструктор печатного комплекта. Доступ — по коду автора: код проверяется расшифровкой контрольного пакета
+   print-pack.js (PBKDF2-SHA256 + AES-GCM) в браузере, сам код нигде не хранится. Сменить код: node scripts/set-author-code.cjs.
+   Это барьер для интерфейса печати на статическом хостинге, а не серверная защита: тексты ситуаций открыты на сайте.
    Раскладка — platform/print-layout.js, общая с PDF-сборкой; данные — общий реестр src/deck.js. */
 (function(root){
 'use strict';
@@ -8,9 +10,9 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const $=id=>document.getElementById(id);
 const requested=D.situations.find(c=>c.id===new URLSearchParams(location.search).get('case'));
 const selected=new Set(requested?[requested.id]:D.situations.map(c=>c.id));
-let unlocked=false,urls=[],includeCommon=!requested;
+let unlocked=false,includeCommon=!requested;
 
-app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Настольная версия</p><h1><span class="dim">Печатный</span> комплект</h1><p class="lead">Для каждой ситуации — двусторонние карточки 99 × 140 мм, по четыре на листе A4: исходная ситуация, ${'5–6'} ролей, три закрытых обстоятельства, карточка ведущего, рефлексия, наблюдатель. Те же ситуации, роли и обстоятельства, что в онлайн-игре.</p></div><div class="hero-deco">${A.cardsArt()}</div></section>
+app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Настольная версия</p><h1><span class="dim">Печатный</span> комплект</h1><p class="lead">Для каждой ситуации — двусторонние карточки 99 × 140 мм, по четыре на листе A4: исходная ситуация, 5–6 ролей, три закрытых обстоятельства, две карточки ведущего (ход игры и варианты решений), рефлексия, наблюдатель. Те же ситуации, роли и обстоятельства, что в онлайн-игре.</p></div><div class="hero-deco">${A.cardsArt()}</div></section>
 <section class="page-body"><div class="wrap">
  <div class="panel gate" id="printGate"><h2 style="font-size:28px">Доступ по коду автора</h2><p>Конструктор печати открывается кодом, который выдаёт автор игры. Код проверяется в браузере и нигде не сохраняется.</p>
   <form id="printUnlock" autocomplete="off"><label class="sr" for="printCode">Код доступа</label><input id="printCode" type="password" placeholder="Код доступа" required><button class="btn primary" id="printUnlockButton">Открыть</button></form><p class="status" id="printAccessStatus" role="status"></p>
@@ -19,7 +21,6 @@ app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebr
    <div class="section-head" style="margin-bottom:20px"><p class="eyebrow">Шаг 1</p><h2 style="font-size:30px">Какие ситуации печатать</h2></div>
    <div class="actions" style="margin:0 0 14px"><button class="btn small" id="selAll" type="button">Выбрать все</button><button class="btn small" id="selNone" type="button">Снять выбор</button><label class="check" style="margin-left:6px"><input type="checkbox" id="optCommon"${includeCommon?' checked':''}> Общая колода: 15 ресурсов и 10 вопросов рефлексии</label></div>
    <div class="kit-list" id="kitList"></div>
-   <details class="acc" style="margin-top:24px" id="oldPdf"><summary>Прежняя редакция (до 30.10.2026) — готовые PDF</summary><div><p>Файлы прежней колоды с двумя-тремя ролями. Для игры по редакции 4.0 используйте конструктор выше.</p><div id="printOldPDF" class="grid two"></div></div></details>
   </div>
   <aside class="print-side"><div class="panel"><p class="eyebrow">Шаг 2 · печать</p>
    <div style="display:grid;gap:12px">
@@ -45,14 +46,15 @@ function num(id,min,max){const n=Number($(id).value);if(!Number.isFinite(n)||n<m
 function opts(){return {edge:$('printEdge').value,side:$('printSide').value,dx:num('printDx',-3,3),dy:num('printDy',-3,3),eco:$('printEco').checked};}
 function zoom(){const w=$('printOutput').clientWidth||900;$('printOutput').style.setProperty('--preview-zoom',String(Math.min(1,Math.max(.3,(w-20)/794))));}
 function show(html,msg){$('printOutput').innerHTML=html;zoom();$('printDo').disabled=false;$('printBuildStatus').textContent=msg;$('printOutput').scrollIntoView({behavior:'smooth',block:'start'});}
-function lock(){unlocked=false;urls.forEach(URL.revokeObjectURL);urls=[];$('printOldPDF').innerHTML='';$('printBuilder').hidden=true;$('printGate').hidden=false;$('printCode').value='';clearOut();}
+function lock(){unlocked=false;$('printBuilder').hidden=true;$('printGate').hidden=false;$('printCode').value='';clearOut();}
 
 $('printUnlock').onsubmit=async e=>{e.preventDefault();const b=$('printUnlockButton');b.disabled=true;$('printAccessStatus').textContent='Проверяем код…';
   try{if(!root.crypto?.subtle)throw Error('https');const pack=root.PEDAGOG_PRINT_PACK;if(!pack)throw Error('missing');const decode=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
     const material=await crypto.subtle.importKey('raw',new TextEncoder().encode($('printCode').value.trim().toUpperCase()),'PBKDF2',false,['deriveKey']);
     const key=await crypto.subtle.deriveKey({name:'PBKDF2',salt:decode(pack.salt),iterations:pack.iterations,hash:'SHA-256'},material,{name:'AES-GCM',length:256},false,['decrypt']);
-    const plain=await crypto.subtle.decrypt({name:'AES-GCM',iv:decode(pack.iv)},key,decode(pack.data));const files=JSON.parse(new TextDecoder().decode(plain));if(!Array.isArray(files))throw Error('invalid');
-    lock();files.forEach(f=>{const url=URL.createObjectURL(new Blob([decode(f.data)],{type:'application/pdf'}));urls.push(url);const a=document.createElement('article');a.className='res-card';a.innerHTML=`<h3></h3><p></p><a class="link-arrow">Скачать PDF</a>`;a.querySelector('h3').textContent=f.title;a.querySelector('p').textContent=f.description||'';const link=a.querySelector('a');link.href=url;link.download=f.name;$('printOldPDF').append(a);});
+    /* AES-GCM проверяет целостность: расшифровка удаётся только с верным кодом. Содержимое пакета дальше не используется. */
+    await crypto.subtle.decrypt({name:'AES-GCM',iv:decode(pack.iv)},key,decode(pack.data));
+    lock();
     unlocked=true;$('printBuilder').hidden=false;$('printGate').hidden=true;$('printAccessStatus').textContent='';renderKits();$('printPrepare').focus();
   }catch(err){$('printCode').value='';$('printAccessStatus').textContent=err.message==='https'?'Откройте сайт по HTTPS в современном браузере.':err.message==='missing'?'Пакет не загрузился. Обновите страницу.':'Код не подошёл. Проверьте код, полученный от автора.';}
   finally{b.disabled=false;}};
@@ -66,11 +68,11 @@ $('printPrepare').onclick=()=>{if(!unlocked)return;try{const o=opts(),copies=num
   const kits=D.situations.filter(c=>selected.has(c.id));if(!kits.length&&!includeCommon)throw Error('Выберите хотя бы одну ситуацию или общую колоду.');
   let cards=kits.flatMap(c=>L.kit(c,S,{observers:obs}));if(includeCommon)cards=cards.concat(L.common());
   cards=Array.from({length:copies},()=>cards).flat();const sheets=Math.ceil(cards.length/L.PER);
-  show(L.sheetsHTML(cards,{...o,label:'ПЕДАГОГ '+D.version}),`Готово: ${cards.length} карточек, ${sheets} ${((n)=>{const a=n%100,b=n%10;return a>10&&a<20?'листов':b===1?'лист':b>1&&b<5?'листа':'листов';})(sheets)} A4${o.side==='both'?' с двух сторон':''}. Нажмите «Печать».`);}
+  show(L.sheetsHTML(cards,{...o,label:'ПЕДАГОГ'}),`Готово: ${cards.length} карточек, ${sheets} ${((n)=>{const a=n%100,b=n%10;return a>10&&a<20?'листов':b===1?'лист':b>1&&b<5?'листа':'листов';})(sheets)} A4${o.side==='both'?' с двух сторон':''}. Нажмите «Печать».`);}
   catch(e){$('printBuildStatus').textContent=e.message;}};
 $('printWorksheets').onclick=()=>{if(!unlocked)return;show(L.worksheetsHTML(S),'Листы ведущего: маршрут и регламент, раскладка комплекта, бланк решения — 3 страницы A4.');};
 $('printDo').onclick=()=>{if(unlocked&&$('printOutput').children.length)window.print();};
-addEventListener('resize',zoom);addEventListener('beforeunload',()=>urls.forEach(URL.revokeObjectURL));
+addEventListener('resize',zoom);
 /* Для внутренней проверки вёрстки без кода: ?preview=1 работает только на локальном адресе. */
 if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&new URLSearchParams(location.search).has('preview')){unlocked=true;$('printBuilder').hidden=false;$('printGate').hidden=true;renderKits();}
 })(globalThis);

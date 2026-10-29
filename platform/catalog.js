@@ -5,7 +5,7 @@ const D=globalThis.PEDAGOG_DATA,M=globalThis.PEDAGOG_META,E=globalThis.PEDAGOG_S
 const app=document.getElementById('app');if(!app||!D)return;
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const T=id=>D.roleTypes.find(t=>t.id===id);
-const accent={'Урок и мотивация':'#3B4A99','Оценивание':'#6874C2','Семья и школа':'#E0A64E','Поддержка ученика':'#2A958E','Отношения и воспитание':'#E8673F','Коллеги и наставничество':'#8366B0','Нагрузка и организация':'#28336E'};
+const accent=M.themeColors;
 const page=document.body.dataset.page;
 const enterLabel=n=>n===0?'С начала':`С обстоятельством ${n}`;
 const sub=`<nav class="subnav" aria-label="Материалы игры"><a href="library.html"${page==='library'?' aria-current="page"':''}>Ситуации</a><a href="cards.html"${page==='cards'?' aria-current="page"':''}>Роли, ресурсы, рефлексия</a><a href="methods.html">Помощь ведущему</a></nav>`;
@@ -28,7 +28,9 @@ function passport(c){
     <details class="spoiler"><summary>Для ведущего: как развивается ситуация — ${later.length} ролей и 3 обстоятельства. Не показывайте участникам заранее.</summary><div class="inner">
      ${c.events.map((ev,i)=>eventCard(c,ev,i+1)+later.filter(x=>x.enters===i+1).map(x=>roleCard(c,x)).join('')).join('')}
     </div></details>
+    <details class="spoiler"><summary>Для ведущего: возможные подходы к решению и их последствия. Не показывайте до этапа «Поиск решения».</summary><div class="inner"><ol class="options">${(c.options||[]).map(x=>`<li><b>${esc(x.title)}.</b> ${esc(x.step)} <span class="muted">${esc(x.result)}</span></li>`).join('')}</ol><p class="small muted" style="margin:0">Это примеры, а не правильные ответы: группа может предложить свой вариант.</p></div></details>
     <div class="panel flat"><h3>Вопросы для рефлексии</h3><ul class="qs">${c.debrief.map(q=>`<li>${esc(q)}</li>`).join('')}</ul></div>
+    ${c.takeaways?`<div class="panel flat"><h3>Профессиональные выводы</h3><ul class="qs">${c.takeaways.map(t=>`<li>${esc(t)}</li>`).join('')}</ul></div>`:''}
     <div class="note-card"><h3>Границы ситуации</h3><p style="margin:0">${esc(c.note)}</p></div>
    </div>
    <aside style="display:grid;gap:18px;align-self:start" class="situation-aside">
@@ -41,9 +43,9 @@ function passport(c){
 function list(){
   const q=new URLSearchParams(location.search);
   const st={theme:q.get('theme')||'',level:'',role:'',text:''};
-  app.innerHTML=`<section class="page-hero"><div class="wrap"><p class="eyebrow">Библиотека</p><h1><span class="dim">${D.situations.length} ситуаций</span> из школьной жизни</h1><p class="lead">В каждой — пять или шесть ролей, которые входят в разговор постепенно, и три обстоятельства, меняющие картину. Откройте паспорт, чтобы подготовиться, или сразу начните игру.</p>${sub}</div><div class="hero-deco">${A.pageDeco()}</div></section>
+  app.innerHTML=`<section class="page-hero"><div class="wrap"><p class="eyebrow">Библиотека</p><h1><span class="dim">${D.situations.length} ситуаций</span> из школьной жизни</h1><p class="lead">В каждой — пять или шесть ролей, которые входят в разговор постепенно, три обстоятельства, меняющие картину, и несколько возможных подходов к решению. Откройте паспорт, чтобы подготовиться, или сразу начните игру.</p>${sub}</div><div class="hero-deco">${A.pageDeco()}</div></section>
   <section class="page-body"><div class="wrap">
-   <div class="filters"><input type="search" id="q" placeholder="Поиск: отметка, чат, замена…" aria-label="Поиск по ситуациям">
+   <div class="filters"><input type="search" id="q" placeholder="Поиск: отметка, чат, опоздания, форма…" aria-label="Поиск по ситуациям">
     <select id="lvl" aria-label="Уровень"><option value="">Любой уровень</option>${M.levels.map(l=>`<option>${l}</option>`).join('')}</select>
     <select id="role" aria-label="Роль в ситуации"><option value="">Любая роль</option>${D.roleTypes.map(t=>`<option value="${t.id}">${esc(t.title)}</option>`).join('')}</select></div>
    <div class="chips" role="group" aria-label="Темы" style="margin-bottom:26px">${['',...M.themes].map(t=>`<button class="chip" data-theme="${esc(t)}" aria-pressed="${t===st.theme}">${t?esc(t):'Все темы'}</button>`).join('')}</div>
