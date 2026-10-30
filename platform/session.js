@@ -10,7 +10,11 @@ const query=new URLSearchParams(location.search);
 const setup={people:6,duration:40,caseId:'С-01',theme:''};
 {const d=Number(query.get('duration'));const mapped=({20:15,45:40,60:40,120:90})[d]||d;if(E.DURATIONS.includes(mapped))setup.duration=mapped;
  const c=query.get('case');if(E.by('situations',c))setup.caseId=c;}
-let state=null,warning='',modal=null,lastTick=Date.now(),pauseOpen=false,announce='';
+let state=null,warning='',modal=null,lastTick=Date.now(),pauseOpen=false,announce='',adviceOpen='';
+/* Черты характера роли — психологическая подсказка, а не сценарий. */
+const traitsHTML=(x,cls='')=>x.traits&&x.traits.length?`<p class="traits ${cls}" aria-label="Характер: ${esc(x.traits.join(', '))}">${x.traits.map(t=>`<span>${esc(t)}</span>`).join('')}</p>`:'';
+/* Рекомендации педагогу: что важно понять, как лучше поступить, чего избегать. */
+const adviceHTML=(c,id='advice')=>c.advice?`<div class="advice"${id?` id="${id}"`:''}><p class="eyebrow">Рекомендации педагогу · ${esc(c.id)}</p><div class="advice-grid"><section><h4>Что важно понять?</h4><p>${esc(c.advice.understand)}</p></section><section><h4>Как лучше поступить?</h4><ol>${c.advice.actions.map(a=>`<li>${esc(a)}</li>`).join('')}</ol></section><section class="avoid"><h4>Чего лучше избегать?</h4><p>${esc(c.advice.avoid)}</p></section></div><p class="small muted" style="margin:0">Это профессиональные ориентиры, а не единственно верный ответ. Сравните их с решениями группы: что вы готовы взять в свою практику?</p></div>`:'';
 
 const $=id=>document.getElementById(id);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -77,7 +81,7 @@ function castBoard(cur){const {team:t,situation:c,revealed,entering}=cur;const o
   ${order.map((x,i)=>{const typ=T(x.type);
     if(x.enters>revealed) return `<div class="cast-item waiting"><span class="badge">?</span><b>Роль ${i+1}</b><small>войдёт с обстоятельством ${x.enters}${isHost&&t.mode!=='solo'?' · '+who(x):''}</small></div>`;
     const isNew=entering.some(n=>n.key===x.key);
-    return `<div class="cast-item${isNew?' entering':''}">${badge(x.type)}<b>${esc(x.label)}${isNew?' <span class="pill coral" style="padding:2px 8px;font-size:10.5px;margin-left:4px">входит</span>':''}</b><div class="row"><small>${typ.title!==x.label?esc(typ.title):''}${typ.title!==x.label&&who(x)?' · ':''}${who(x)}</small></div><div class="row">${playerSel(x)}${isHost?`<button type="button" class="open-role" data-role="${x.key}">Карточка роли</button>`:`<small style="color:#DADCF3;font-weight:500">${esc(x.position)}</small>`}</div></div>`;}).join('')}
+    return `<div class="cast-item${isNew?' entering':''}">${badge(x.type)}<b>${esc(x.label)}${isNew?' <span class="pill coral" style="padding:2px 8px;font-size:10.5px;margin-left:4px">входит</span>':''}</b><div class="row"><small>${typ.title!==x.label?esc(typ.title):''}${typ.title!==x.label&&who(x)?' · ':''}${who(x)}</small></div>${traitsHTML(x,'row')}<div class="row">${playerSel(x)}${isHost?`<button type="button" class="open-role" data-role="${x.key}">Карточка роли</button>`:`<small style="color:#DADCF3;font-weight:500">${esc(x.position)}</small>`}</div></div>`;}).join('')}
   ${t.mode==='solo'?'<p class="obs">Один участник: все роли ваши — по очереди.</p>':obs.length?`<p class="obs">Наблюдатели: ${obs.map(p=>'участник '+p).join(', ')}. Задача — точная реплика, факт отдельно от догадки, один вопрос.</p>`:'<p class="obs">Свободных участников нет: наблюдение ведёт ведущий.</p>'}
   </aside>`;}
 
@@ -90,6 +94,8 @@ function stageExtras(cur){const {team:t,situation:c,key}=cur;const out=[];
     if(host()&&c.options)out.push(`<details class="acc host-hint"><summary>Подсказка ведущему: возможные подходы — откройте, если группа застряла</summary><div><ol class="options">${c.options.map(x=>`<li><b>${esc(x.title)}.</b> ${esc(x.step)} <span class="muted">${esc(x.result)}</span></li>`).join('')}</ol><p class="small muted" style="margin:0">Это не правильные ответы, а примеры. Группа может выбрать свой вариант — важно назвать последствия для каждой роли.</p></div></details>`);
     out.push(`<div class="panel flat"><h3>Ресурс <small class="muted" style="font-weight:500">— по желанию, как инструмент для решения</small></h3><div class="res-pick" role="group" aria-label="Ресурсы">${c.resourceIds.map(id=>{const r=E.by('resources',id);return `<button type="button" data-res="${id}" aria-pressed="${t.resource===id}"${host()?'':' disabled'}><b>${esc(r.title)}</b><small>${esc(r.text)}</small></button>`;}).join('')}</div></div>`);}
   if(key==='reflect'){const m=E.by('reflections',t.reflectCard);out.push(`<div class="panel flat"><h3>Вопросы для рефлексии</h3><ul class="qs">${c.debrief.map(q=>`<li>${esc(q)}</li>`).join('')}<li style="background:var(--teal-mist);color:var(--teal-900)">${esc(m.title)}: ${esc(m.text)}</li></ul></div>`);
+    if(c.advice){const id=`${state.currentRound}-${state.currentTeam}`,open=adviceOpen===id;
+      out.push(`<div class="advice-box"><p class="small muted" style="margin:0 0 10px">Сначала обсудите вопросы и решения группы. Потом откройте рекомендации и сравните.</p><button type="button" class="btn ${open?'':'primary'}" id="advice-toggle" aria-expanded="${open}" aria-controls="advice">${open?'Скрыть рекомендации':'Рекомендации педагогу'}</button>${open?adviceHTML(c):''}</div>`);}
     if(host()&&c.takeaways)out.push(`<details class="acc host-hint"><summary>Для итога ведущему: профессиональные выводы ситуации</summary><div><ul class="qs">${c.takeaways.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><p class="small muted" style="margin:0">Сначала выслушайте выводы группы; эти — дополнение, если что-то не прозвучало.</p></div></details>`);}
   if(key==='break'){out.push(`<div class="panel flat"><h3>Ситуация второго раунда</h3><label for="next-case" class="small muted">Лучше из другой темы — чтобы сравнить, как работают разные роли.</label><select id="next-case">${D.situations.filter(x=>x.id!==c.id).map(x=>`<option value="${x.id}">${x.id} · ${esc(x.title)} (${esc(x.theme)})</option>`).join('')}</select></div>`);}
   return out.join('');}
@@ -139,6 +145,7 @@ function renderSession(){
 function roleModal(c,key){const x=roleOf(c,key),t=T(x.type);const m=$('modal');
   m.innerHTML=`<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="role-title"><p class="warn">Карточку читает только тот, кто ведёт роль. Остальным достаточно позиции, которую персонаж скажет сам.</p>
   <article class="role-card" style="--c:${t.color};box-shadow:none;padding:0;border-top:0"><header>${badge(x.type,'lg')}<div><b id="role-title">${esc(x.label)}</b><small>${esc(t.title)} · ${enterLabel(x.enters)}</small></div></header>
+  ${x.traits&&x.traits.length?`<div class="character"><p class="label">Ваш характер</p>${traitsHTML(x)}<p class="hint">Представьте, как человек с такими чертами воспринимает происходящее и реагирует на слова других. Это подсказка, а не сценарий: говорите своими словами.</p></div>`:''}
   <dl><dt>Позиция</dt><dd>${esc(x.position)}</dd><dt>Что знаете</dt><dd>${esc(x.knows)}</dd><dt>Чего хотите</dt><dd>${esc(x.wants)}</dd><dt>Переживаете</dt><dd>${esc(x.feels)}</dd><dt>Отвечаете за</dt><dd>${esc(x.zone)}</dd></dl><div class="ask">${esc(x.ask)}</div><p class="small muted" style="margin:0">${esc(t.text)}</p></article>
   <div class="actions"><button type="button" class="btn primary" id="modal-close">Закрыть</button></div></div>`;
   m.hidden=false;modal=key;$('modal-close').focus();$('modal-close').onclick=closeModal;m.onclick=e=>{if(e.target===m)closeModal();};}
@@ -165,6 +172,7 @@ function bindSession(cur){const r=cur.round;
   app.querySelectorAll('[data-assign]').forEach(s=>s.onchange=()=>act(()=>E.assign(state,s.dataset.assign,Number(s.value))));
   app.querySelectorAll('[data-res]').forEach(b=>b.onclick=()=>act(()=>E.resource(state,cur.team.resource===b.dataset.res?null:b.dataset.res)));
   app.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>roleModal(cur.situation,b.dataset.role));
+  if($('advice-toggle'))$('advice-toggle').onclick=()=>{const id=`${state.currentRound}-${state.currentTeam}`;adviceOpen=adviceOpen===id?'':id;render();const a=$('advice');if(a)a.scrollIntoView({behavior:'smooth',block:'nearest'});const b=$('advice-toggle');if(b)b.focus();};
   const note=$('note');if(note)note.oninput=()=>{if(note.dataset.note==='meeting')state.meeting=note.value.slice(0,12000);else cur.team.notes[note.dataset.note]=note.value.slice(0,12000);save();};
   if($('reset'))$('reset').onclick=()=>{if(confirm('Начать новую встречу? Текущие записи будут удалены из браузера.')){try{localStorage.removeItem(KEY);}catch{}state=null;render();window.scrollTo(0,0);}};
 }
@@ -181,7 +189,7 @@ function renderSummary(){document.body.classList.remove('participant');
   app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Встреча завершена</p><h1><span class="dim">Итоги</span> встречи</h1><p class="lead">Решения команд и общий вывод. Личные шаги остаются у участников. Скачайте итоги — в браузере они хранятся только до новой встречи.</p>
   <div class="actions"><button class="btn white" id="dl-txt">Скачать итоги (.txt)</button><button class="btn ghost-light" id="print-sum">Распечатать</button></div></div><div class="hero-deco">${A.pageDeco(53)}</div></section>
   <section class="page-body"><div class="wrap">${state.rounds.map(r=>r.teams.map(t=>{const c=E.by('situations',t.caseId);return `<article class="panel summary-team"><p class="eyebrow">Раунд ${r.number}${r.teams.length>1?' · команда '+t.number:''}</p><h2 style="font-size:28px">${esc(c.title)}</h2>
-   <dl>${t.resource?`<dt>Ресурс</dt><dd>${esc(E.by('resources',t.resource).title)}</dd>`:''}${E.NOTE_KEYS.map(k=>t.notes[k].trim()?`<dt>${esc(E.NOTE_LABELS[k])}</dt><dd>${esc(t.notes[k])}</dd>`:'').join('')||'<dt>Записи</dt><dd class="muted">Команда ничего не записала — это допустимо.</dd>'}</dl></article>`;}).join('')).join('')}
+   <dl>${t.resource?`<dt>Ресурс</dt><dd>${esc(E.by('resources',t.resource).title)}</dd>`:''}${E.NOTE_KEYS.map(k=>t.notes[k].trim()?`<dt>${esc(E.NOTE_LABELS[k])}</dt><dd>${esc(t.notes[k])}</dd>`:'').join('')||'<dt>Записи</dt><dd class="muted">Команда ничего не записала — это допустимо.</dd>'}</dl>${c.advice?`<details class="acc advice-sum"><summary>Рекомендации педагогу — сравните со своими решениями</summary><div>${adviceHTML(c,'')}</div></details>`:''}</article>`;}).join('')).join('')}
    ${state.meeting.trim()?`<article class="panel summary-team"><p class="eyebrow">Общий итог</p><dl><dt>Итог встречи</dt><dd>${esc(state.meeting)}</dd></dl></article>`:''}
    <div class="actions"><button class="btn" id="reopen">← Вернуться к встрече</button><button class="btn primary" id="new-meeting">Новая встреча</button></div></div></section>`;
   $('dl-txt').onclick=()=>download(`pedagog-itogi-${state.started.slice(0,10)}.txt`,summaryText());

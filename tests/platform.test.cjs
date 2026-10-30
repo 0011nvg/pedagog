@@ -25,9 +25,15 @@ for(const c of D.situations){
   assert(Array.isArray(c.options)&&c.options.length>=2&&c.options.every(o=>o.title&&o.step&&o.result),c.id+': варианты решений с последствиями');
   assert(Array.isArray(c.takeaways)&&c.takeaways.length>=2,c.id+': профессиональные выводы');
   assert(D.situations.filter(x=>x.title===c.title).length===1,c.id+': уникальное название');
+  for(const x of c.cast){assert(Array.isArray(x.traits)&&x.traits.length===3&&x.traits.every(t=>typeof t==='string'&&t.trim().length>=4&&t.length<=40),`${c.id}/${x.key}: три черты характера`);assert.equal(new Set(x.traits).size,3,`${c.id}/${x.key}: черты не повторяются`);}
+  assert(c.advice&&c.advice.understand.length>=60&&c.advice.avoid.length>=30&&c.advice.actions.length>=2&&c.advice.actions.length<=3&&c.advice.actions.every(a=>a.length>=25),c.id+': рекомендации педагогу (понять · 2–3 действия · избегать)');
   sequences.add(c.cast.filter(x=>x.enters).sort((a,b)=>a.enters-b.enters).map(x=>x.type).join('>'));
 }
 assert(sequences.size>=D.situations.length-2,'порядок входа ролей не повторяется');
+{const acts=D.situations.flatMap(c=>c.advice.actions);assert.equal(new Set(acts).size,acts.length,'рекомендации не повторяются между ситуациями');
+ const stigma=/диагноз|больн|ненормальн|псих(?!олог)|агрессор|лентя|тупой|истерич/i;D.situations.forEach(c=>c.cast.forEach(x=>assert(!stigma.test(x.traits.join(' ')),`${c.id}/${x.key}: черты без ярлыков`)));}
+{const s=fs.readFileSync(path.join(root,'platform/session.js'),'utf8');assert(/advice-toggle/.test(s)&&/key==='reflect'[\s\S]*Рекомендации педагогу/.test(s),'рекомендации открываются кнопкой на этапе рефлексии');
+ assert(!/key==='(start|positions|solution)'[^\n]*adviceHTML/.test(s),'рекомендации не показываются до рефлексии');assert(/Ваш характер/.test(s),'характер в карточке роли');}
 for(const p of pages){const html=fs.readFileSync(path.join(root,p+'.html'),'utf8');assert(/<html lang="ru"/.test(html));assert(html.includes('id="app"'));assert.equal((html.match(/<main\b/g)||[]).length,1);
   const tags=[...html.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]);assert.equal(new Set(tags).size,tags.length,'duplicate IDs in '+p);
   for(const m of html.matchAll(/(?:href|src)="([^"]+)"/g)){const u=m[1];if(/^(https?:|mailto:|tel:|#|data:)/.test(u))continue;const file=decodeURIComponent(u.split(/[?#]/)[0]);assert(fs.existsSync(path.join(root,file)),`${p}: missing ${file}`);}
