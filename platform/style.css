@@ -608,3 +608,32 @@ body.participant .feed .situation-card p{font-size:clamp(17px,1.4vw,21px)}
 .author-block .timeline b{color:var(--ink)}
 @media (max-width:760px){.author-block{grid-template-columns:1fr}}
 @media (max-width:640px){.author-page .actions .btn{white-space:normal;text-align:center;line-height:1.25;padding:12px 20px;height:auto}}
+
+/* Характер персонажа: три черты — небольшие плашки. Рекомендации педагогу — после рефлексии. */
+.traits{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+.traits span{display:inline-block;padding:3px 10px;border-radius:var(--pill);font:600 12.5px/1.35 var(--text);background:var(--lav-3);color:var(--indigo-700)}
+.traits span::first-letter{text-transform:uppercase}
+.cast-item .traits{grid-column:2}
+.cast-item .traits{display:block;line-height:1.35}
+.cast-item .traits span{display:inline;background:none;border:0;padding:0;color:#FFE7A3;font-size:12.5px;font-weight:600}
+.cast-item .traits span::first-letter{text-transform:none}
+.cast-item .traits span:first-child{display:inline-block}
+.cast-item .traits span:first-child::first-letter{text-transform:uppercase}
+.cast-item .traits span+span::before{content:" · ";color:rgba(255,231,163,.6)}
+.character{background:#FFF8E8;border-radius:14px;padding:12px 14px;display:grid;gap:8px}
+.character .label{margin:0;font:800 12px/1 var(--display);letter-spacing:.08em;text-transform:uppercase;color:#9A5B12}
+.character .traits span{background:#fff;color:#7A4A10;border:1px solid #F1D29A;font-size:13.5px;padding:4px 12px}
+.character .hint{margin:0;font-size:13.5px;line-height:1.45;color:var(--ink-2)}
+.advice-box{display:grid;gap:14px;justify-items:start}
+.advice{width:100%;background:var(--paper);border-radius:var(--r);box-shadow:var(--shadow);padding:22px 24px;display:grid;gap:14px;border-top:5px solid var(--teal)}
+.advice .eyebrow{margin:0}
+.advice-grid{display:grid;grid-template-columns:1fr;gap:12px}
+.advice-grid section{background:var(--lav-3);border-radius:14px;padding:14px 16px}
+.advice-grid section.avoid{background:#FFF1EA}
+.advice-grid h4{margin:0 0 8px;font:800 14px/1.2 var(--display);text-transform:uppercase;letter-spacing:.03em;color:var(--indigo)}
+.advice-grid section.avoid h4{color:#B2541F}
+.advice-grid p,.advice-grid ol{margin:0;font-size:15px;line-height:1.5;color:var(--ink-2)}
+.advice-grid ol{padding-left:20px;display:grid;gap:6px}
+details.advice-sum{margin-top:14px;box-shadow:none;background:var(--lav-3)}
+details.advice-sum .advice{box-shadow:none}
+@media print{.advice-box button{display:none}}

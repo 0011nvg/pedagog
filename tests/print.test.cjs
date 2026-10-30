@@ -11,6 +11,8 @@ for(const c of D.situations){const kit=L.kit(c,S);assert.equal(kit.length%4,0,c.
   c.events.forEach(ev=>assert(html.includes(ev.title.replace(/"/g,'&quot;')),c.id+' обстоятельство в печати'));
   const situationFront=kit[0].front;c.cast.filter(x=>x.enters>0).forEach(x=>assert(!situationFront.includes(x.label),c.id+': карточка ситуации не раскрывает поздние роли'));
   kit.filter(k=>k.kind==='event').forEach(k=>assert(/Не открывать до сигнала ведущего/.test(k.back)));
+  kit.filter(k=>k.kind==='role').forEach(k=>{const r=c.cast.find(x=>k.front.includes(x.position.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')));assert(r&&k.front.includes('Характер:')&&r.traits.every(w=>k.front.includes(w)),c.id+': характер на карточке роли');});
+  {const adv=kit.filter(k=>k.kind==='advice');assert.equal(adv.length,1,c.id+': карточка рекомендаций');assert(/Что важно понять/.test(adv[0].front)&&/Как лучше поступить/.test(adv[0].front)&&/Чего лучше избегать/.test(adv[0].front));assert(/после проигрывания/.test(adv[0].back),c.id+': рубашка рекомендаций');}
   const p=L.plan(kit,{edge:'long'});assert.equal(p.length,kit.length/2);p.filter(s=>s.back).forEach((s,i)=>{const front=p[i*2];front.cards.forEach((c2,j)=>assert.equal(s.cards[L.backIndex(j,'long')],c2));});}
 assert.equal(L.common().length%4,0);assert(L.worksheetsHTML(S).includes('Маршрут ведущего'));assert(L.calibrationHTML({}).includes('Пробный лист'));
 const js=fs.readFileSync(path.join(root,'platform/print.js'),'utf8');assert(/PBKDF2/.test(js)&&/AES-GCM/.test(js),'доступ по коду сохранён');assert(!/localStorage/.test(js),'код не сохраняется');

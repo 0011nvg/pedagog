@@ -7,7 +7,7 @@
 .pc-sheet,.pc-a4{position:relative;width:210mm;height:297mm;background:#fff;color:#1A1F45;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08),0 18px 40px -18px rgba(23,29,69,.4);font-family:'Onest',system-ui,sans-serif;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .pc-grid{position:absolute;left:6mm;top:8.5mm;width:198mm;height:280mm;display:grid;grid-template-columns:99mm 99mm;grid-template-rows:140mm 140mm}
 .pc-card{position:relative;width:99mm;height:140mm;overflow:hidden;padding:4mm;font-size:8.8pt;line-height:1.34}
-.k-role .pc-body{font-size:9.1pt;line-height:1.34}.k-role .pc-fields{gap:1.5mm}
+.k-role .pc-body{font-size:8.9pt;line-height:1.28}.k-role .pc-fields{gap:1.5mm}
 .pc-card.k-empty{padding:0}
 .cm{position:absolute;background:#8B8FB5;display:block}
 .cm.v{width:.2mm;height:5mm}.cm.h{height:.2mm;width:4mm}
@@ -118,3 +118,13 @@
 .eco .pc-frame{background:#fff;border:.3mm solid #C9CCEB}
 .eco .pc-back-frame{background:#fff;color:var(--eco);border:.45mm solid var(--eco);border-radius:2.6mm}
 .eco .pc-back-frame::before{display:none}
+/* Характер персонажа на карточке роли */
+.pc-traits{margin:.8mm 0 0;color:#6E430E;font-size:8.3pt;line-height:1.25;font-weight:600}
+.pc-traits b{font:700 6.8pt/1 'Onest',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#9A5B12;margin-right:.6mm}
+/* Рекомендации педагогу */
+.k-advice .pc-body{font-size:8.5pt;line-height:1.32;gap:1.3mm}
+.pc-adv-h{margin:.6mm 0 0;font:700 7pt/1.1 'Onest',sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#124B48}
+.pc-adv-h.avoid{color:#B2541F}
+.pc-adv-list{margin:0;padding-left:4.2mm;display:grid;gap:1mm}
+.pc-avoid{margin:0;padding:1.2mm 2mm;border-radius:1.6mm;background:#FFF1EA}
+.eco .pc-avoid{background:none;border:.3mm solid currentColor}
