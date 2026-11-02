@@ -128,3 +128,5 @@
 .pc-adv-list{margin:0;padding-left:4.2mm;display:grid;gap:1mm}
 .pc-avoid{margin:0;padding:1.2mm 2mm;border-radius:1.6mm;background:#FFF1EA}
 .eco .pc-avoid{background:none;border:.3mm solid currentColor}
+
+.pc-assign td{padding:.8mm 1mm}

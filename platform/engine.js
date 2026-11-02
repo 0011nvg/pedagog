@@ -7,7 +7,7 @@
   'use strict';
   const D = root.PEDAGOG_DATA;
   const VERSION = 5;
-  const MAX_PEOPLE = 40, MAX_ROUNDS = 6;
+  const MAX_PEOPLE = 240, MAX_ROUNDS = 6;
 
   /* reveal — сколько обстоятельств открыто к началу этапа. note — ключ записи команды. */
   const STAGES = {
@@ -15,11 +15,11 @@
       do:'Прочитайте ситуацию вслух. Распределите роли: на экране видно, кто вступает сразу, а кто — позже. Свободные участники — наблюдатели. Напомните: можно наблюдать, сменить роль или попросить паузу без объяснений; реальных детей и коллег не называем.',
       who:'Ведущий, затем все', result:'Все понимают, что произошло, и знают, кто какую роль ведёт.'},
     positions: {title:'Первые позиции', short:'Позиции', reveal:0, note:'positions',
-      do:'Первые роли читают свои карточки про себя и начинают с исходной реплики. 2–3 минуты разговора — так, как действовали бы сами. Не нужно решать всё: важно услышать позиции. Наблюдатели записывают точные слова.',
-      who:'Первые роли; наблюдатели записывают', result:'Позиции первых участников прозвучали; понятно, как ситуация выглядит сейчас.'},
+      do:'Первые роли читают свои карточки про себя и начинают с исходной реплики. 2–3 минуты разговора — так, как действовали бы сами. Не нужно решать всё: важно услышать позиции. Наблюдатели замечают точные слова.',
+      who:'Первые роли; наблюдатели слушают', result:'Позиции первых участников прозвучали; понятно, как ситуация выглядит сейчас.'},
     ev1: {title:'Обстоятельство 1', short:'Обст. 1', reveal:1, note:'ev1',
       do:'Ведущий открывает карточку обстоятельства и читает её вслух. В разговор входит новая роль: она называет свою позицию одной-двумя фразами. Короткий обмен репликами, затем ответ на вопрос карточки.',
-      who:'Ведущий открывает; новая роль входит', result:'Записано, что изменилось в понимании ситуации.'},
+      who:'Ведущий открывает; новая роль входит', result:'Названо, что изменилось в понимании ситуации.'},
     ev2: {title:'Обстоятельство 2', short:'Обст. 2', reveal:2, note:'ev2',
       do:'Откройте второе обстоятельство. Новая роль вступает в разговор. Проверьте прежние выводы: что подтвердилось, а что оказалось предположением?',
       who:'Ведущий открывает; новая роль входит', result:'Названо, что подтвердилось и что пришлось пересмотреть.'},
@@ -30,25 +30,25 @@
       do:'Откройте два последних обстоятельства подряд. Новые роли называют свои позиции одной фразой. Что теперь выглядит иначе, чем в начале?',
       who:'Ведущий открывает; новые роли входят', result:'Все роли в игре; названо главное изменение картины.'},
     solution: {title:'Поиск решения', short:'Решение', reveal:3, note:'decision',
-      do:'Назовите два-три варианта действий и их последствия для каждой роли — завтра и через месяц. По желанию возьмите карточку ресурса как инструмент. Выберите обоснованный вариант: что делаем, кто, к какому сроку и как поймём, что получилось. Несогласие можно записать.',
-      who:'Все, роли остаются в своих позициях', result:'Записано действие, ответственные, срок и признак результата.'},
+      do:'Назовите два-три варианта действий и их последствия для каждой роли — завтра и через месяц. По желанию возьмите карточку ресурса как инструмент. Выберите обоснованный вариант: что делаем, кто, к какому сроку и как поймём, что получилось. Выслушайте и несогласие.',
+      who:'Все, роли остаются в своих позициях', result:'Названо действие, ответственные, срок и признак результата.'},
     reflect: {title:'Рефлексия', short:'Рефлексия', reveal:3, note:'reflection',
-      do:'Выйдите из ролей: назовите своё имя. Как менялось ваше понимание ситуации с каждым обстоятельством? Обсудите вопросы ниже. Каждый для себя записывает один шаг, который попробует в работе. Делиться им не обязательно.',
-      who:'Каждый за себя, затем по желанию — вслух', result:'У каждого есть личный шаг; у группы — общий вывод, если она согласна его записать.'},
+      do:'Выйдите из ролей: назовите своё имя. Как менялось ваше понимание ситуации с каждым обстоятельством? Обсудите вопросы ниже. Каждый для себя выбирает один шаг, который попробует в работе. Делиться им не обязательно.',
+      who:'Каждый за себя, затем по желанию — вслух', result:'У каждого есть личный шаг; у группы — общий вывод, если она готова им поделиться.'},
     break: {title:'Перерыв', short:'Перерыв', reveal:3, note:null,
       do:'Пять минут перерыва. Перед ним выберите ситуацию второго раунда — лучше из другой темы, чтобы сравнить, как работают разные роли.',
       who:'Ведущий', result:'Выбрана ситуация второго раунда.'},
     summary: {title:'Итог встречи', short:'Итог', reveal:3, note:'meeting',
-      do:'Сравните два раунда: какие роли чаще всего меняли картину? Какой вопрос или приём группа возьмёт в работу? Запишите только то, с чем все согласны.',
+      do:'Сравните два раунда: какие роли чаще всего меняли картину? Какой вопрос или приём группа возьмёт в работу? Назовите общее и различия, не требуя единогласия.',
       who:'Все', result:'Есть общий вывод встречи (по согласию группы).'}
   };
   const P40 = [['start',4],['positions',5],['ev1',5],['ev2',5],['ev3',5],['solution',10],['reflect',6]];
   const FORMATS = {
-    15: {title:'Знакомство', lead:'Одна ситуация в сжатом темпе: все роли и обстоятельства, короткое решение и вывод.', people:'2–8 участников',
+    15: {title:'Знакомство', lead:'Одна ситуация в сжатом темпе: все роли и обстоятельства, короткое решение и вывод.', people:'Быстрое знакомство',
          rounds:[[['start',2],['positions',2],['ev1',2],['ev23',3],['solution',4],['reflect',2]]]},
-    40: {title:'Полный разбор', lead:'Одна ситуация: роли входят по очереди, три обстоятельства, поиск решения и рефлексия.', people:'3–12 участников',
+    40: {title:'Полный разбор', lead:'Одна ситуация: роли входят по очереди, три обстоятельства, поиск решения и рефлексия.', people:'Обсуждение и рефлексия',
          rounds:[P40]},
-    90: {title:'Командная встреча', lead:'Два полных раунда по разным ситуациям, перерыв и общий итог.', people:'6–40 участников, команды по 4–6',
+    90: {title:'Командная встреча', lead:'Два полных раунда по разным ситуациям, перерыв и общий итог.', people:'Два раунда с перерывом',
          rounds:[[...P40,['break',5]],[...P40,['summary',5]]]}
   };
   const DURATIONS = [15, 40, 90];
@@ -88,22 +88,24 @@
   function observers(c,t){ const used=new Set(Object.values(t.assign)); const out=[]; for(let p=1;p<=t.size;p++) if(!used.has(p)) out.push(p); return out; }
 
   function team(c,number,size,solo,rng){
-    return {number,size,caseId:c.id,mode:solo?'solo':(size<3?'council':'scene'),assign:defaultAssign(c,size,solo),
+    return {number,size,caseId:c.id,mode:solo?'solo':(size<c.cast.length?'council':'scene'),assign:defaultAssign(c,size,solo),
       resource:null,reflectCard:pick(D.reflections,rng).id,
       notes:{positions:'',ev1:'',ev2:'',ev3:'',decision:'',reflection:''}};
   }
   function makeRound(s,number,caseId,rng){
     const c=by('situations',caseId); if(!c) throw new Error('Ситуация не найдена.');
     const {stages,plan}=roundPlan(s.settings.duration,number-1);
-    const n=s.settings.teams, sizes=Array.from({length:n},(_,i)=>Math.floor(s.settings.people/n)+(i<s.settings.people%n?1:0));
+    const n=s.settings.teams, sizes=s.settings.teamSizes || Array.from({length:n},(_,i)=>Math.floor(s.settings.people/n)+(i<s.settings.people%n?1:0));
     return {number,stage:0,remaining:plan[0],running:false,stages,plan,teams:sizes.map((size,i)=>team(c,i+1,size,s.settings.solo,rng))};
   }
   function create(settings,rng=Math.random){
-    const people=settings&&settings.people, duration=settings&&settings.duration, caseId=settings&&settings.caseId;
-    if(!integer(people,1,MAX_PEOPLE)) throw new Error('Укажите число участников от 1 до 40.');
+    const sizes=settings&&settings.teamSizes;
+    if(sizes && (!Array.isArray(sizes)||!integer(sizes.length,1,20)||!sizes.every(n=>integer(n,4,12)))) throw new Error('Выберите 1–20 команд, по 4–12 участников в каждой.');
+    const people=sizes?sizes.reduce((a,b)=>a+b,0):settings&&settings.people, duration=settings&&settings.duration, caseId=settings&&settings.caseId;
+    if(!integer(people,1,MAX_PEOPLE)) throw new Error('Укажите число участников от 1 до 240.');
     if(!DURATIONS.includes(duration)) throw new Error('Выберите формат: 15, 40 или 90 минут.');
     if(!by('situations',caseId)) throw new Error('Выберите ситуацию из списка.');
-    const s={schema:VERSION,deckVersion:D.version,settings:{people,duration,caseId,teams:teamsFor(people),solo:people===1},
+    const s={schema:VERSION,deckVersion:D.version,settings:{people,duration,caseId,teams:sizes?sizes.length:teamsFor(people),...(sizes?{teamSizes:[...sizes]}:{}),solo:people===1},
       started:new Date().toISOString(),currentRound:0,currentTeam:0,view:'host',completed:false,meeting:'',rounds:[]};
     s.rounds.push(makeRound(s,1,caseId,rng));
     return s;
@@ -149,10 +151,15 @@
     if(t.mode==='solo'){
       who='Вы';
       if(key==='start') doText='Прочитайте ситуацию. Вы будете последовательно смотреть на неё глазами каждой роли — по мере того как они появляются.';
-      if(key==='positions') doText='Прочитайте карточки первых ролей. Запишите, что сказал бы каждый персонаж в ответ на исходную реплику.';
+      if(key==='positions') doText='Прочитайте карточки первых ролей. Сформулируйте, что сказал бы каждый персонаж в ответ на исходную реплику.';
       if(['ev1','ev2','ev3','ev23'].includes(key)) doText='Откройте обстоятельство и карточку новой роли. Что она знает такого, чего не знали остальные? Что изменилось в вашем понимании?';
-      if(key==='solution') doText='Сформулируйте два варианта действий и проверьте каждый глазами всех ролей. Выберите вариант и запишите: что, кто, срок, признак результата.';
-      if(key==='reflect') doText='Вспомните, как менялась ваша первая версия событий. Ответьте себе на вопросы ниже и запишите один шаг для работы.';
+      if(key==='solution') doText='Сформулируйте два варианта действий и проверьте каждый глазами всех ролей. Выберите вариант и назовите: что, кто, срок, признак результата.';
+      if(key==='reflect') doText='Вспомните, как менялась ваша первая версия событий. Ответьте себе на вопросы ниже и выберите один шаг для работы.';
+    }
+    if(r.teams.length>1){
+      if(key==='start') doText+=' Все команды разбирают одну ситуацию параллельно. У каждого стола выберите помощника: он раздаёт роли и следит за очередностью. Ведущий открывает обстоятельства одновременно для всех.';
+      if(key==='solution') doText+=' Первую половину этапа обсуждайте за столами. Затем по очереди каждая команда за 30 секунд называет действие и его основание. Сравните различия без голосования за победителя. При необходимости добавьте время кнопкой +1.';
+      if(key==='reflect'||key==='summary') doText+=' Сначала обменяйтесь мыслями в командах, затем по одному представителю назовите, какая чужая позиция изменила решение. Совпадения не повторяйте; личный шаг каждый выбирает сам.';
     }
     return {key,title,do:doText,who,result,minutes:Math.round(r.plan[r.stage]/60),note:d.note};
   }
@@ -160,7 +167,7 @@
   function validate(s){
     if(!s||typeof s!=='object'||s.schema!==VERSION||s.deckVersion!==D.version||!s.settings) return false;
     const st=s.settings;
-    if(!integer(st.people,1,MAX_PEOPLE)||!DURATIONS.includes(st.duration)||!by('situations',st.caseId)||st.teams!==teamsFor(st.people)||st.solo!==(st.people===1)) return false;
+    if(!integer(st.people,1,MAX_PEOPLE)||!DURATIONS.includes(st.duration)||!by('situations',st.caseId)||(st.teamSizes?(!Array.isArray(st.teamSizes)||!integer(st.teamSizes.length,1,20)||!st.teamSizes.every(n=>integer(n,4,12))||st.teams!==st.teamSizes.length||st.teamSizes.reduce((a,b)=>a+b,0)!==st.people):st.teams!==teamsFor(st.people))||st.solo!==(st.people===1)) return false;
     if(!['host','participant'].includes(s.view)||typeof s.completed!=='boolean'||!text(s.started,40)||!Number.isFinite(Date.parse(s.started))||!text(s.meeting)) return false;
     if(!Array.isArray(s.rounds)||!integer(s.rounds.length,1,MAX_ROUNDS)||!integer(s.currentRound,0,s.rounds.length-1)||!integer(s.currentTeam,0,st.teams-1)) return false;
     return s.rounds.every((r,ri)=>{
@@ -171,6 +178,7 @@
       if(r.running&&(s.completed||ri!==s.currentRound)) return false;
       if(!Array.isArray(r.teams)||r.teams.length!==st.teams||r.teams.reduce((n,t)=>n+(t&&t.size||0),0)!==st.people) return false;
       return r.teams.every((t,ti)=>{ const c=t&&by('situations',t.caseId);
+        if(st.teamSizes&&t.size!==st.teamSizes[ti])return false;
         if(!c||t.number!==ti+1||!integer(t.size,1,MAX_PEOPLE)||!['scene','council','solo'].includes(t.mode)) return false;
         if((t.mode==='solo')!==st.solo) return false;
         if(!t.assign||typeof t.assign!=='object'||Object.keys(t.assign).length!==c.cast.length) return false;

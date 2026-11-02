@@ -13,7 +13,7 @@ const T=id=>D.roleTypes.find(t=>t.id===id);
 const ASSET_VERSION=require('crypto').createHash('sha1').update(['src/deck.js','platform/metadata.js','platform/engine.js','platform/art.js','platform/session.js','platform/catalog.js','platform/print.js','platform/print-layout.js','platform/shared.js','platform/style.css','platform/print.css'].map(f=>fs.readFileSync(path.join(root,f),'utf8')).join('\n')).digest('hex').slice(0,10);
 
 const routes=[['index','Главная'],['about','Об игре'],['game','Онлайн-игра'],['print','Печать'],['library','Ситуации'],['cards','Роли и ресурсы'],['rules','Правила'],['methods','Ведущему'],['author','Об авторе']];
-const NAV=[['about','Об игре'],['library','Ситуации'],['rules','Правила'],['methods','Ведущему'],['print','Печать']];
+const NAV=[['about','Об игре'],['library','Ситуации'],['rules','Правила'],['print','Печать']];
 const DESC='ПЕДАГОГ — деловая игра для педагогов: участники разбирают реальные школьные ситуации, примеряют роли ученика, учителя, родителя, классного руководителя, психолога и администрации и вместе ищут решение. Онлайн на 15, 40 или 90 минут и печатный комплект.';
 
 function shell(page,title,body,scripts=[]){
@@ -29,8 +29,8 @@ function shell(page,title,body,scripts=[]){
 <nav id="navigation" class="site-nav" aria-label="Основная навигация">${NAV.map(([p,n])=>`<a href="${p}.html"${active===p?' aria-current="page"':''}>${n}</a>`).join('')}<a class="nav-cta" href="game.html"${page==='game'?' aria-current="page"':''}>Играть онлайн</a></nav></div></header>
 <main><div id="app" tabindex="-1">${body}</div></main>
 <footer class="site-footer"><div class="footer-inner"><div><strong>ПЕДАГОГ</strong><p>Авторская деловая игра Виктории Геннадьевны Науменко.</p><p class="small">УДК 371.124 · ББК 74.04</p></div>
-<div class="footer-links"><a href="game.html">Онлайн-игра</a><a href="print.html">Печатный комплект</a><a href="library.html">Ситуации</a><a href="cards.html">Роли и ресурсы</a></div>
-<div class="footer-links"><a href="about.html">Об игре</a><a href="rules.html">Правила</a><a href="methods.html">Методический кабинет</a><a href="author.html">Об авторе</a><a href="rules.html#usage">Условия использования</a></div></div>
+<div class="footer-links"><a href="print.html">Печатный комплект</a></div>
+<div class="footer-links"><a href="about.html">Об игре</a><a href="rules.html">Правила</a><a href="author.html">Об авторе</a><a href="rules.html#usage">Условия использования</a></div></div>
 <p class="footer-note">© В. Г. Науменко, 2025–2026. Игра не используется для аттестации и оценки сотрудников. Шрифты Montserrat и Onest — SIL Open Font License 1.1.</p></footer>
 <script src="platform/shared.js?v=${ASSET_VERSION}"></script>${scripts.map(s=>`<script src="${s}?v=${ASSET_VERSION}"></script>`).join('')}</body></html>`;}
 
@@ -109,12 +109,13 @@ for(const [page,title] of routes){let body,scripts=[];
     const file=path.join(root,'platform/pages',page+'.html');if(!fs.existsSync(file))throw new Error('Missing page source: '+page);
     body=hero(page,HEROES[page])+fs.readFileSync(file,'utf8').replace(/<!--FORMATS-->/g,formatsHTML()).replace(/<!--ROUND-->/g,roundHTML()).replace(/<!--ROLES-->/g,rolesHTML()).replace(/<!--COUNT-->/g,String(D.situations.length)).replace(/<!--RIDGE-->/g,A.ridge());
   }
-  fs.writeFileSync(path.join(root,page+'.html'),shell(page,title,body,scripts));
+  if(page==='methods') body='<section class="page-body"><div class="wrap"><h1>Методика проведения — в разделе «Об игре»</h1><p><a href="about.html#facilitation">Перейти к методике</a></p></div></section><script>location.replace("about.html"+(location.hash||"#facilitation"));</script>';
+  fs.writeFileSync(path.join(root,page+'.html'),shell(page,title,body,scripts).replace(/methods\.html(?:#([a-z-]+))?/g,(_,id)=>'about.html#'+(id||'facilitation')));
 }
 fs.writeFileSync(path.join(root,'404.html'),shell('404','Страница не найдена',`<section class="page-hero"><div class="wrap"><p class="eyebrow">404</p><h1><span class="dim">Этой страницы</span> нет на маршруте</h1><p class="lead">Вернитесь к игре или выберите раздел в навигации.</p><div class="actions"><a class="btn white" href="index.html">На главную</a><a class="btn ghost-light" href="game.html">Начать игру</a></div></div><div class="hero-deco">${A.pageDeco(404)}</div></section>`).replace(/(href|src)="(?![a-z]+:|\/|#|data:)([^"]+)"/g,'$1="/pedagog/$2"').replace(/url\((fonts\/)/g,'url(/pedagog/platform/$1'));
 console.log(`Built 9 pages + 404 from deck ${D.version} (${D.situations.length} situations).`);
 
 // Копия для локальной браузерной проверки; HTML в корне — то, что публикует GitHub Pages.
-const dist=path.join(root,'qa-preview');fs.rmSync(dist,{recursive:true,force:true});fs.mkdirSync(dist,{recursive:true});
+const dist=path.join(root,'qa-preview');fs.mkdirSync(dist,{recursive:true});
 for(const file of [...routes.map(([p])=>p+'.html'),'404.html','print-pack.js'])fs.copyFileSync(path.join(root,file),path.join(dist,file));
 for(const dir of ['platform','src'])fs.cpSync(path.join(root,dir),path.join(dist,dir),{recursive:true});
