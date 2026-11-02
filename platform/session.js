@@ -7,7 +7,7 @@ const E=globalThis.PEDAGOG_SESSION,D=globalThis.PEDAGOG_DATA,A=globalThis.PEDAGO
 if(!app||!E)return;
 const KEY='pedagog-platform-session-v5',OLD_KEYS=['pedagog-platform-session-v4','pedagog-platform-session-v3'];
 const query=new URLSearchParams(location.search);
-const setup={people:6,duration:40,caseId:'С-01',theme:''};
+const setup={teamSizes:[6],duration:40,caseId:'С-01',theme:''};
 {const d=Number(query.get('duration'));const mapped=({20:15,45:40,60:40,120:90})[d]||d;if(E.DURATIONS.includes(mapped))setup.duration=mapped;
  const c=query.get('case');if(E.by('situations',c))setup.caseId=c;}
 let state=null,warning='',modal=null,lastTick=Date.now(),pauseOpen=false,announce='',adviceOpen='';
@@ -29,14 +29,14 @@ const host=()=>state&&state.view==='host';
 /* ---------- Хранение ---------- */
 /* Несовместимое или повреждённое сохранение (например, от другой версии игры) молча удаляется — встреча начинается заново. */
 function load(){try{for(const k of OLD_KEYS)localStorage.removeItem(k);const raw=localStorage.getItem(KEY);if(raw)state=E.restore(raw);}catch{state=null;try{localStorage.removeItem(KEY);}catch{}}}
-function save(){if(!state)return;try{localStorage.setItem(KEY,JSON.stringify(state));}catch{warning='Браузер не сохраняет данные (приватный режим?). Скачайте итоги вручную перед закрытием вкладки.';}}
-function download(name,text,type='text/plain'){const url=URL.createObjectURL(new Blob([text],{type:type+';charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function save(){if(!state)return;try{localStorage.setItem(KEY,JSON.stringify(state));}catch{warning='Браузер не сохраняет данные (приватный режим?). После закрытия вкладки прогресс может быть потерян.';}}
+
 
 /* ---------- Экран настройки ---------- */
 function stagePlan(minutes){return E.FORMATS[minutes].rounds.map((r,i)=>`<div class="table-wrap"><table><caption>${E.FORMATS[minutes].rounds.length>1?`Раунд ${i+1} · `:''}${r.reduce((a,x)=>a+x[1],0)} мин</caption><tbody>${r.map(([k,m],j)=>`<tr><td>${j+1}. ${esc(E.STAGES[k].title)}</td><td class="num">${m}</td></tr>`).join('')}</tbody></table></div>`).join('');}
 function renderSetup(){
   document.body.classList.remove('participant');
-  const c=E.by('situations',setup.caseId),teams=E.teamsFor(setup.people);
+  const c=E.by('situations',setup.caseId),teams=setup.teamSizes.length;
   const cases=D.situations.filter(x=>!setup.theme||x.theme===setup.theme);
   const themes=[...new Set(D.situations.map(x=>x.theme))];
   app.innerHTML=`<section class="page-hero" style="padding-bottom:clamp(40px,5vw,64px)"><div class="wrap"><p class="eyebrow">Онлайн-игра</p><h1><span class="dim">Подготовка</span> встречи</h1><p class="lead">Три шага: время, число участников и ситуация. Дальше сайт распределит роли и поведёт по этапам — новые обстоятельства откроются в нужный момент.</p></div><div class="hero-deco">${A.pageDeco(23)}</div></section>
@@ -44,28 +44,32 @@ function renderSetup(){
   ${warning?`<p class="note-card" role="alert">${esc(warning)}</p>`:''}
   <form class="setup" id="setup-form" novalidate><div class="panel">
    <section class="setup-step"><h3><span>1</span>Сколько у вас времени?</h3><div class="dur" role="group" aria-label="Формат">${E.DURATIONS.map(m=>`<button type="button" id="preset-${m}" data-dur="${m}" aria-pressed="${m===setup.duration}"><b>${m}</b><span>${esc(E.FORMATS[m].title)}</span><small>${esc(E.FORMATS[m].people)}</small></button>`).join('')}</div></section>
-   <section class="setup-step"><h3><span>2</span>Сколько участников?</h3><div class="stepper"><button type="button" id="ppl-minus" aria-label="Меньше участников">−</button><input id="people" inputmode="numeric" type="number" min="1" max="40" value="${setup.people}" aria-label="Число участников"><button type="button" id="ppl-plus" aria-label="Больше участников">+</button></div>
-    <p class="small muted" style="margin:0">${setup.people===1?'Один участник: вы последовательно посмотрите на ситуацию глазами каждой роли.':teams>1?`${teams} ${word(teams,'команда','команды','команд')} по 4–6 человек, все разбирают одну ситуацию по общему таймеру. Нужен помощник у каждого стола.`:setup.people<c.cast.length?`Ролей в ситуации — ${c.cast.length}, участников меньше: кто-то поведёт две роли (вторую — с момента её входа). Можно выбрать режим «совет коллег».`:`Каждому — своя роль, остальные ${setup.people-c.cast.length>0?`(${setup.people-c.cast.length}) — наблюдатели`:'роли заняты все'}.`}</p></section>
+   <section class="setup-step"><h3><span>2</span>Команды и участники</h3>
+    <label for="team-count">Количество команд</label><select id="team-count">${Array.from({length:20},(_,i)=>`<option value="${i+1}"${teams===i+1?' selected':''}>${i+1}</option>`).join('')}</select>
+    <div class="team-setup">${setup.teamSizes.map((size,i)=>`<div class="panel flat"><label for="team-size-${i}">Команда ${i+1} · участников</label><select id="team-size-${i}" data-team-size="${i}">${Array.from({length:9},(_,n)=>`<option value="${n+4}"${size===n+4?' selected':''}>${n+4}</option>`).join('')}</select><p class="small muted">${size<c.cast.length?'Совет коллег: дополнительные роли читаем последовательно, не теряя ни одной позиции.':size>c.cast.length?`${c.cast.length} игроков с ролями, ${size-c.cast.length} ${word(size-c.cast.length,'наблюдатель','наблюдателя','наблюдателей')}.`:'Каждому участнику — отдельная роль.'}</p><div class="participant-seats" aria-label="Места участников">${Array.from({length:size},(_,n)=>`<span>${n+1}</span>`).join('')}</div></div>`).join('')}</div>
+    <p class="small muted">Всего ${setup.teamSizes.reduce((a,b)=>a+b,0)} участников. Можно создать до 20 команд по 4–12 человек. Все разбирают одну ситуацию по общему таймеру; у каждого стола — помощник ведущего.</p></section>
    <section class="setup-step"><h3><span>3</span>Какую ситуацию разберём?</h3>
     <div class="chips" role="group" aria-label="Темы">${['',...themes].map(t=>`<button type="button" class="chip" data-theme="${esc(t)}" aria-pressed="${t===setup.theme}">${t?esc(t):'Все темы'}</button>`).join('')}</div>
     <label class="sr" for="case-select">Ситуация</label><select id="case-select" class="sr" tabindex="-1">${D.situations.map(x=>`<option value="${x.id}"${x.id===setup.caseId?' selected':''}>${x.id} ${esc(x.title)}</option>`).join('')}</select>
-    <div class="case-pick" role="group" aria-label="Ситуации">${cases.map(x=>`<button type="button" data-case="${x.id}" aria-pressed="${x.id===setup.caseId}"><small>${x.id} · ${esc(x.theme)}</small><b>${esc(x.title)}</b><span class="badges">${E.castOrder(x).map(r=>badge(r.type,'sm')).join('')}</span></button>`).join('')}</div></section>
+    <button type="button" class="btn" id="random-case">Выбрать другую случайно</button><details class="manual-case"><summary>Выбрать ситуацию вручную</summary><div class="case-pick" role="group" aria-label="Ситуации">${cases.map(x=>`<button type="button" data-case="${x.id}" aria-pressed="${x.id===setup.caseId}"><small>${x.id} · ${esc(x.theme)}</small><b>${esc(x.title)}</b><span class="badges">${E.castOrder(x).map(r=>badge(r.type,'sm')).join('')}</span></button>`).join('')}</div></details></section>
   </div>
   <aside class="setup-summary"><div class="situation-card"><p class="pill" style="color:#fff;border-color:rgba(255,255,255,.45)">${c.id} · ${esc(c.grade)}</p><h2 style="font-size:28px;margin-top:14px">${esc(c.title)}</h2><p>${esc(c.text)}</p><p class="opening">${esc(c.opening)}</p>
    <dl><dt>Роли по порядку входа</dt><dd><span class="badges">${E.castOrder(c).map(r=>badge(r.type,'sm')).join('')}</span><br><span class="small">${E.castOrder(c).filter(r=>r.enters===0).map(r=>esc(r.label)).join(', ')} — с начала; ещё ${c.cast.filter(r=>r.enters>0).length} войдут по ходу</span></dd><dt>Регламент · ${setup.duration} минут</dt><dd>${E.FORMATS[setup.duration].rounds.flat().map(([k,m])=>`${esc(E.STAGES[k].short)} ${m}`).join(' · ')}</dd></dl>
    <div class="actions"><button type="submit" class="btn white" id="start">Начать встречу →</button><a class="link-arrow" style="color:#fff" href="library.html?case=${encodeURIComponent(c.id)}">Паспорт ситуации</a></div></div>
-   <p class="small muted" style="margin-top:14px">Записи хранятся только в этом браузере. Не вводите имена и узнаваемые подробности о детях и коллегах.</p></aside></form></div>`;
+   <p class="small muted" style="margin-top:14px">Обсуждаем устно. Этап и настройки сохраняются в этом браузере; после обновления таймер будет на паузе.</p></aside></form></div>`;
   bindSetup();
 }
+function randomCase(){const pool=D.situations.filter(c=>(!setup.theme||c.theme===setup.theme)&&c.id!==setup.caseId);if(pool.length)setup.caseId=E.pick(pool).id;}
 function bindSetup(){
   app.querySelectorAll('[data-dur]').forEach(b=>b.onclick=()=>{setup.duration=Number(b.dataset.dur);renderSetup();});
-  app.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{setup.theme=b.dataset.theme;renderSetup();});
+  app.querySelectorAll('[data-theme]').forEach(b=>b.onclick=()=>{setup.theme=b.dataset.theme;randomCase();renderSetup();});
   app.querySelectorAll('[data-case]').forEach(b=>b.onclick=()=>{setup.caseId=b.dataset.case;renderSetup();const el=app.querySelector(`[data-case="${b.dataset.case}"]`);if(el)el.focus();});
-  const ppl=v=>{setup.people=Math.min(40,Math.max(1,Math.round(Number(v))||1));renderSetup();$('people').focus();};
-  $('ppl-minus').onclick=()=>ppl(setup.people-1);$('ppl-plus').onclick=()=>ppl(setup.people+1);$('people').onchange=e=>ppl(e.target.value);
+  $('random-case').onclick=()=>{randomCase();renderSetup();};
+  $('team-count').onchange=e=>{const n=Math.min(20,Math.max(1,Math.round(Number(e.target.value))||1));setup.teamSizes=Array.from({length:n},(_,i)=>setup.teamSizes[i]||6);renderSetup();};
+  app.querySelectorAll('[data-team-size]').forEach(el=>el.onchange=()=>{setup.teamSizes[Number(el.dataset.teamSize)]=Math.min(12,Math.max(4,Math.round(Number(el.value))||4));renderSetup();});
   $('case-select').onchange=e=>{setup.caseId=e.target.value;renderSetup();};
-  $('setup-form').onsubmit=e=>{e.preventDefault();const n=Number($('people').value);if(Number.isInteger(n)&&n>=1&&n<=40)setup.people=n;
-    try{state=E.create({people:setup.people,duration:setup.duration,caseId:setup.caseId});warning='';save();render();window.scrollTo(0,0);}catch(err){warning=err.message;renderSetup();}};
+  $('setup-form').onsubmit=e=>{e.preventDefault();
+    try{state=E.create({teamSizes:setup.teamSizes,duration:setup.duration,caseId:setup.caseId});warning='';save();render();window.scrollTo(0,0);}catch(err){warning=err.message;renderSetup();}};
 }
 
 /* ---------- Экран встречи ---------- */
@@ -76,7 +80,7 @@ function castBoard(cur){const {team:t,situation:c,revealed,entering}=cur;const o
   const ppl=t.size;const obs=E.observers(c,t);
   const playerSel=x=>isHost&&t.mode!=='solo'?`<label class="sr" for="as-${x.key}">Кто ведёт роль</label><select id="as-${x.key}" data-assign="${x.key}">${Array.from({length:ppl+1},(_,p)=>`<option value="${p}"${t.assign[x.key]===p?' selected':''}>${p===0?'Ведущий читает':'Участник '+p}</option>`).join('')}</select>`:'';
   const who=x=>t.mode==='solo'?'':t.assign[x.key]?`Участник ${t.assign[x.key]}`:'Ведущий читает';
-  return `<aside class="cast" aria-label="Участники ситуации"><h3>Роли <small>${order.filter(x=>x.enters<=revealed).length} из ${order.length} в игре</small></h3>
+  return `<aside class="cast" aria-label="Участники ситуации">${t.size<c.cast.length?'<p class="obs">Дополнительные роли читаем по очереди. Перед каждой репликой назовите персонажа; не ведите спор с самим собой. После чтения группа обсуждает все позиции. Можно передать дополнительную роль ведущему.</p>':''}<h3>Роли <small>${order.filter(x=>x.enters<=revealed).length} из ${order.length} в игре</small></h3>
   ${t.mode!=='solo'&&isHost?`<div class="mode-switch" role="group" aria-label="Режим"><button type="button" data-mode="scene" aria-pressed="${t.mode==='scene'}">Сцена</button><button type="button" data-mode="council" aria-pressed="${t.mode==='council'}">Совет коллег</button></div>`:''}
   ${order.map((x,i)=>{const typ=T(x.type);
     if(x.enters>revealed) return `<div class="cast-item waiting"><span class="badge">?</span><b>Роль ${i+1}</b><small>войдёт с обстоятельством ${x.enters}${isHost&&t.mode!=='solo'?' · '+who(x):''}</small></div>`;
@@ -100,10 +104,6 @@ function stageExtras(cur){const {team:t,situation:c,key}=cur;const out=[];
   if(key==='break'){out.push(`<div class="panel flat"><h3>Ситуация второго раунда</h3><label for="next-case" class="small muted">Лучше из другой темы — чтобы сравнить, как работают разные роли.</label><select id="next-case">${D.situations.filter(x=>x.id!==c.id).map(x=>`<option value="${x.id}">${x.id} · ${esc(x.title)} (${esc(x.theme)})</option>`).join('')}</select></div>`);}
   return out.join('');}
 
-const NOTE_HINT={positions:'Что прозвучало? Какой видится ситуация сейчас?',ev1:'Что изменилось в понимании? Что оказалось предположением?',ev2:'Что подтвердилось, а что пришлось пересмотреть?',ev3:'Какой стала полная картина?',decision:'Что делаем · кто · к какому сроку · как поймём, что получилось. Несогласие тоже можно записать.',reflection:'Общий вывод — только если группа согласна его записать.',meeting:'Что из двух раундов группа берёт в работу?'};
-function noteField(cur,s){if(!s.note||!host())return '';const key=s.note;const val=key==='meeting'?state.meeting:cur.team.notes[key];
-  return `<div class="note-box"><label for="note">${key==='meeting'?'Итог встречи':esc(E.NOTE_LABELS[key])}<small>сохраняется автоматически</small></label><textarea id="note" data-note="${key}" placeholder="${esc(NOTE_HINT[key])}">${esc(val)}</textarea></div>`;}
-
 function renderSession(){
   const cur=E.current(state),r=cur.round,c=cur.situation,t=cur.team,s=E.stageCopy(state);const isHost=host();
   document.body.classList.toggle('participant',!isHost);
@@ -119,6 +119,7 @@ function renderSession(){
    ${multiTeam&&isHost?`<label class="sr" for="team-select">Команда</label><select id="team-select">${r.teams.map((x,i)=>`<option value="${i}"${i===state.currentTeam?' selected':''}>Команда ${x.number} · ${x.size} чел.</option>`).join('')}</select>`:''}
    <div class="timer${r.remaining<=0?' over':''}"><output id="clock" aria-live="off" aria-label="Осталось времени на этапе">${mmss(r.remaining)}</output>${isHost?`<button type="button" id="timer-toggle" aria-label="${r.running?'Пауза таймера':'Запустить таймер'}">${r.running?'❚❚':'▶'}</button><button type="button" id="timer-plus" class="wide" aria-label="Добавить минуту">+1</button>`:''}</div>
    <button type="button" class="btn small" id="toggle-view">${isHost?'Экран для всех':'Экран ведущего'}</button>${isHost?`<button type="button" class="btn small" id="group-pause">Пауза для группы</button>`:''}</div></div>
+  ${multiTeam?`<p class="note-card">Команды работают параллельно. Переключатель команды меняет только показанные роли и ресурс — этап и таймер общие. Решения сравниваем устно на этапе «Решение».</p>`:''}
   ${track(r)}
   <div class="game-grid"><div style="display:grid;gap:16px;min-width:0">
    ${opened.filter(o=>newNums.includes(o.n)).map(o=>eventBlock(c,o.ev,o.n,true)).join('')}
@@ -126,7 +127,7 @@ function renderSession(){
     <p class="do">${esc(s.do)}</p>
     ${cur.entering.length?`<p class="note-card" style="margin:0"><b>Входит в игру:</b> ${cur.entering.map(x=>esc(x.label)+(t.mode!=='solo'?` (${t.assign[x.key]?'участник '+t.assign[x.key]:'читает ведущий'})`:'')).join(', ')}. ${t.mode==='solo'?'Прочитайте карточку новой роли справа.':'Откройте карточку роли и передайте её участнику.'}</p>`:''}
     <div class="meta"><span><b>Кто:</b> ${esc(s.who)}</span><span><b>Итог этапа:</b> ${esc(s.result)}</span></div>
-    ${stageExtras(cur)}${noteField(cur,s)}
+    ${stageExtras(cur)}
     ${isHost?`<div class="game-nav"><button type="button" class="btn" id="prev-stage"${r.stage===0?' disabled':''}>← Назад</button><span class="status" id="status" role="status">${esc(announce)}</span>
      ${!last?`<button type="button" class="btn primary" id="next-stage">${/^ev/.test(r.stages[r.stage+1])?'Открыть обстоятельство →':'Далее →'}</button>`:r.number<planned?`<button type="button" class="btn primary" id="next-round">Начать раунд ${r.number+1} →</button>`:`<span style="display:flex;gap:10px;flex-wrap:wrap">${state.rounds.length<6?'<button type="button" class="btn" id="extra-round">Ещё раунд</button>':''}<button type="button" class="btn primary" id="finish">Завершить встречу →</button></span>`}</div>`:''}
    </section>
@@ -173,29 +174,14 @@ function bindSession(cur){const r=cur.round;
   app.querySelectorAll('[data-res]').forEach(b=>b.onclick=()=>act(()=>E.resource(state,cur.team.resource===b.dataset.res?null:b.dataset.res)));
   app.querySelectorAll('[data-role]').forEach(b=>b.onclick=()=>roleModal(cur.situation,b.dataset.role));
   if($('advice-toggle'))$('advice-toggle').onclick=()=>{const id=`${state.currentRound}-${state.currentTeam}`;adviceOpen=adviceOpen===id?'':id;render();const a=$('advice');if(a)a.scrollIntoView({behavior:'smooth',block:'nearest'});const b=$('advice-toggle');if(b)b.focus();};
-  const note=$('note');if(note)note.oninput=()=>{if(note.dataset.note==='meeting')state.meeting=note.value.slice(0,12000);else cur.team.notes[note.dataset.note]=note.value.slice(0,12000);save();};
-  if($('reset'))$('reset').onclick=()=>{if(confirm('Начать новую встречу? Текущие записи будут удалены из браузера.')){try{localStorage.removeItem(KEY);}catch{}state=null;render();window.scrollTo(0,0);}};
+  if($('reset'))$('reset').onclick=()=>{if(confirm('Начать новую встречу? Текущий ход игры будет сброшен.')){try{localStorage.removeItem(KEY);}catch{}state=null;render();window.scrollTo(0,0);}};
 }
 function pickNext(c){const other=D.situations.filter(x=>x.theme!==c.theme);return (other[Math.floor(Math.random()*other.length)]||D.situations[0]).id;}
 
 /* ---------- Итоги ---------- */
-function summaryText(){const L=[];L.push('ПЕДАГОГ · итоги встречи',`Дата: ${new Date(state.started).toLocaleDateString('ru-RU')} · формат ${state.settings.duration} мин · участников: ${state.settings.people}`,'');
-  state.rounds.forEach(r=>r.teams.forEach(t=>{const c=E.by('situations',t.caseId);L.push(`Раунд ${r.number}${r.teams.length>1?' · команда '+t.number:''}: ${c.id} «${c.title}»`);
-    if(t.resource)L.push('Ресурс: '+E.by('resources',t.resource).title);
-    E.NOTE_KEYS.forEach(k=>{if(t.notes[k].trim())L.push(`${E.NOTE_LABELS[k]}:\n${t.notes[k].trim()}`);});L.push('');}));
-  if(state.meeting.trim())L.push('Итог встречи:',state.meeting.trim());
-  L.push('','Записи без имён и узнаваемых подробностей. Игра не используется для оценки сотрудников.');return L.join('\n');}
 function renderSummary(){document.body.classList.remove('participant');
-  app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Встреча завершена</p><h1><span class="dim">Итоги</span> встречи</h1><p class="lead">Решения команд и общий вывод. Личные шаги остаются у участников. Скачайте итоги — в браузере они хранятся только до новой встречи.</p>
-  <div class="actions"><button class="btn white" id="dl-txt">Скачать итоги (.txt)</button><button class="btn ghost-light" id="print-sum">Распечатать</button></div></div><div class="hero-deco">${A.pageDeco(53)}</div></section>
-  <section class="page-body"><div class="wrap">${state.rounds.map(r=>r.teams.map(t=>{const c=E.by('situations',t.caseId);return `<article class="panel summary-team"><p class="eyebrow">Раунд ${r.number}${r.teams.length>1?' · команда '+t.number:''}</p><h2 style="font-size:28px">${esc(c.title)}</h2>
-   <dl>${t.resource?`<dt>Ресурс</dt><dd>${esc(E.by('resources',t.resource).title)}</dd>`:''}${E.NOTE_KEYS.map(k=>t.notes[k].trim()?`<dt>${esc(E.NOTE_LABELS[k])}</dt><dd>${esc(t.notes[k])}</dd>`:'').join('')||'<dt>Записи</dt><dd class="muted">Команда ничего не записала — это допустимо.</dd>'}</dl>${c.advice?`<details class="acc advice-sum"><summary>Рекомендации педагогу — сравните со своими решениями</summary><div>${adviceHTML(c,'')}</div></details>`:''}</article>`;}).join('')).join('')}
-   ${state.meeting.trim()?`<article class="panel summary-team"><p class="eyebrow">Общий итог</p><dl><dt>Итог встречи</dt><dd>${esc(state.meeting)}</dd></dl></article>`:''}
-   <div class="actions"><button class="btn" id="reopen">← Вернуться к встрече</button><button class="btn primary" id="new-meeting">Новая встреча</button></div></div></section>`;
-  $('dl-txt').onclick=()=>download(`pedagog-itogi-${state.started.slice(0,10)}.txt`,summaryText());
-  $('print-sum').onclick=()=>window.print();
-  $('reopen').onclick=()=>act(()=>E.reopen(state));
-  $('new-meeting').onclick=()=>{if(confirm('Начать новую встречу? Записи этой встречи будут удалены из браузера.')){try{localStorage.removeItem(KEY);}catch{}state=null;render();window.scrollTo(0,0);}};
+  app.innerHTML=`<section class="page-hero teal completion"><div class="wrap"><p class="eyebrow">Спасибо за профессиональный диалог</p><h1>Игра завершена!</h1><p class="lead">Сегодня вы попробовали посмотреть на школьную ситуацию с разных сторон, услышать разные позиции и найти возможные пути решения. Именно с этого начинается профессиональный диалог.</p><p>Возьмите с собой один вопрос или приём, который захотелось попробовать в работе.</p><div class="actions"><button class="btn white" id="new-meeting">Сыграть ещё раз</button><a class="btn ghost-light" href="index.html">На главную</a></div></div><div class="hero-deco">${A.pageDeco(53)}</div></section>`;
+  $('new-meeting').onclick=()=>{setup.teamSizes=state.settings.teamSizes?[...state.settings.teamSizes]:state.rounds[0].teams.map(t=>Math.max(4,t.size));setup.duration=state.settings.duration;try{localStorage.removeItem(KEY);}catch{}state=null;randomCase();render();window.scrollTo(0,0);};
 }
 
 function render(){if(!state)renderSetup();else if(state.completed)renderSummary();else renderSession();}

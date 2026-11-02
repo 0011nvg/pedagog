@@ -19,7 +19,7 @@ app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebr
   <p class="small muted" style="margin:0">Тексты ситуаций открыты в разделе <a href="library.html">«Ситуации»</a>. Код — барьер для печатного конструктора, а не защита содержания: сайт работает на статическом хостинге.</p></div>
  <div id="printBuilder" hidden><div class="print-builder"><div>
    <div class="section-head" style="margin-bottom:20px"><p class="eyebrow">Шаг 1</p><h2 style="font-size:30px">Какие ситуации печатать</h2></div>
-   <div class="actions" style="margin:0 0 14px"><button class="btn small" id="selAll" type="button">Выбрать все</button><button class="btn small" id="selNone" type="button">Снять выбор</button><label class="check" style="margin-left:6px"><input type="checkbox" id="optCommon"${includeCommon?' checked':''}> Общая колода: 15 ресурсов и 10 вопросов рефлексии</label></div>
+   <div class="actions" style="margin:0 0 14px"><button class="btn small" id="selAll" type="button">Выбрать все</button><button class="btn small" id="selNone" type="button">Снять выбор</button><label class="check" style="margin-left:6px"><input type="checkbox" id="optCommon"${includeCommon?' checked':''}> Общая колода: ${D.resources.length} ресурсов и ${D.reflections.length} вопросов рефлексии</label></div>
    <div class="kit-list" id="kitList"></div>
   </div>
   <aside class="print-side"><div class="panel"><p class="eyebrow">Шаг 2 · печать</p>
