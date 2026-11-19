@@ -57,7 +57,7 @@
 .pc-assign td:first-child{font-weight:800;width:6.3mm;text-align:center}
 .pc-safety{margin-top:auto!important;font-size:calc(7.4pt * var(--type-scale, 1));line-height:1.3;background:#FCE9E2;color:#5A2516;border-radius:1.4mm;padding:1.4mm 1.82mm}
 .pc-qs{margin:0;padding-left:3.08mm;display:grid;gap:1.26mm;font-size:calc(9pt * var(--type-scale, 1));font-weight:600;color:#28336E}
-.pc-lines{flex:1 1 auto;min-height:3mm;overflow:hidden}
+.pc-lines{flex:1 1 auto;min-height:3mm;overflow:hidden;clip-path:inset(0)}
 .pc-lines i{display:block;height:5mm;border-bottom:.175mm solid #C9CCEB}
 .pc-lines.short{flex:0 0 15.4mm}
 .pc-checks{margin:0;padding:0;list-style:none;display:grid;gap:1.12mm}
