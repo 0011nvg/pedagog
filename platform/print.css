@@ -57,7 +57,8 @@
 .pc-assign td:first-child{font-weight:800;width:6.3mm;text-align:center}
 .pc-safety{margin-top:auto!important;font-size:calc(7.4pt * var(--type-scale, 1));line-height:1.3;background:#FCE9E2;color:#5A2516;border-radius:1.4mm;padding:1.4mm 1.82mm}
 .pc-qs{margin:0;padding-left:3.08mm;display:grid;gap:1.26mm;font-size:calc(9pt * var(--type-scale, 1));font-weight:600;color:#28336E}
-.pc-lines{flex:1 1 auto;min-height:3mm;background:repeating-linear-gradient(to bottom,transparent 0,transparent 4.9mm,#C9CCEB 4.9mm,#C9CCEB 5.075mm)}
+.pc-lines{flex:1 1 auto;min-height:3mm;overflow:hidden}
+.pc-lines i{display:block;height:5mm;border-bottom:.175mm solid #C9CCEB}
 .pc-lines.short{flex:0 0 15.4mm}
 .pc-checks{margin:0;padding:0;list-style:none;display:grid;gap:1.12mm}
 .pc-checks li{display:flex;gap:1.4mm;align-items:flex-start}
@@ -65,17 +66,19 @@
 
 /* Рубашка: цвет лицевой стороны, звёзды, крупная типографика */
 .pc-back{height:100%;padding:0}
-.pc-back-frame{position:relative;height:100%;background:var(--a);color:var(--fg);display:flex;flex-direction:column;align-items:stretch;padding:3.78mm 4.2mm 3.78mm;overflow:hidden}
+.pc-back-frame{--back-paper:var(--a);--back-ink:var(--fg);position:relative;height:100%;background:var(--back-paper);color:var(--back-ink);display:flex;flex-direction:column;align-items:stretch;padding:3.78mm 4.2mm 3.78mm;overflow:hidden}
 .pc-stars{position:absolute;inset:0;width:100%;height:100%;color:var(--fg);pointer-events:none}
 .pc-back-top{position:relative;margin:0;display:flex;justify-content:space-between;font:800 calc(7.6pt * var(--type-scale, 1))/1 'Montserrat',sans-serif;letter-spacing:.18em}
-.pc-back-top span:last-child{letter-spacing:.06em;opacity:.85}
+.pc-back-top span:last-child{letter-spacing:.06em;color:color-mix(in srgb,var(--back-ink) 85%,var(--back-paper))}
 .pc-back-text{min-height:0;position:relative;flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1.82mm;padding:0 1.4mm}
 .pc-back-text>*{flex-shrink:0}
-.pc-back-label{margin:0;font:800 calc(9.6pt * var(--type-scale, 1))/1.1 'Montserrat',sans-serif;letter-spacing:.28em;text-transform:uppercase;opacity:.85}
+/* Keep the lettering clear if a bigger title extends into the stars. */
+.pc-back-text>p,.pc-back-top span,.pc-back-foot{background:var(--back-paper)}
+.pc-back-label{margin:0;font:800 calc(9.6pt * var(--type-scale, 1))/1.1 'Montserrat',sans-serif;letter-spacing:.28em;text-transform:uppercase;color:color-mix(in srgb,var(--back-ink) 85%,var(--back-paper))}
 .pc-back-label::after{content:"";display:block;width:8.4mm;height:0.315mm;margin:1.82mm auto 0;background:currentColor;opacity:.55;border-radius:0.21mm}
 .pc-back-title{margin:0;font:800 calc(18pt * var(--type-scale, 1))/1.12 'Montserrat',sans-serif;max-width:56mm;overflow-wrap:break-word;hyphens:manual}
-.pc-back-sub{margin:0;font-size:calc(9pt * var(--type-scale, 1));font-weight:600;line-height:1.35;max-width:54.6mm;opacity:.92}
-.pc-back-foot{position:relative;margin:0;text-align:center;font:600 calc(6.8pt * var(--type-scale, 1))/1 'Onest',sans-serif;letter-spacing:.16em;text-transform:uppercase;opacity:.75}
+.pc-back-sub{margin:0;font-size:calc(9pt * var(--type-scale, 1));font-weight:600;line-height:1.35;max-width:54.6mm;color:color-mix(in srgb,var(--back-ink) 92%,var(--back-paper))}
+.pc-back-foot{position:relative;margin:0;text-align:center;font:600 calc(6.8pt * var(--type-scale, 1))/1 'Onest',sans-serif;letter-spacing:.16em;text-transform:uppercase;align-self:center;color:color-mix(in srgb,var(--back-ink) 75%,var(--back-paper))}
 
 /* Экономичная печать: без заливок, только контуры */
 .eco .pc-head{background:#fff;color:var(--k);border:0.28mm solid var(--k);border-bottom-width:0.63mm}
@@ -129,7 +132,7 @@
 .k-options .pc-checks{gap:1.54mm;font-size:calc(8.8pt * var(--type-scale, 1))}
 .pc-frame{margin-top:auto!important;font-size:calc(7.8pt * var(--type-scale, 1));line-height:1.32;background:#EEEFF8;color:#28336E;border-radius:1.4mm;padding:1.4mm 1.82mm}
 .eco .pc-frame{background:#fff;border:0.21mm solid #C9CCEB}
-.eco .pc-back-frame{background:#fff;color:var(--eco);border:0.315mm solid var(--eco);border-radius:1.82mm}
+.eco .pc-back-frame{--back-paper:#fff;--back-ink:var(--eco);border:0.315mm solid var(--eco);border-radius:1.82mm}
 .eco .pc-back-frame::before{display:none}
 /* Характер персонажа на карточке роли */
 .pc-traits{margin:0.56mm 0 0;color:#6E430E;font-size:calc(8.3pt * var(--type-scale, 1));line-height:1.25;font-weight:600}
