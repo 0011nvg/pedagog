@@ -12,7 +12,7 @@ const requested=D.situations.find(c=>c.id===new URLSearchParams(location.search)
 const selected=new Set(requested?[requested.id]:D.situations.map(c=>c.id));
 let unlocked=false,includeCommon=!requested;
 
-app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Настольная версия</p><h1><span class="dim">Печатный</span> комплект</h1><p class="lead">Для каждой ситуации — двусторонние карточки 99 × 140 мм, по четыре на листе A4: исходная ситуация, 5–6 ролей, три закрытых обстоятельства, две карточки ведущего (ход игры и варианты решений), рефлексия, наблюдатель. Те же ситуации, роли и обстоятельства, что в онлайн-игре.</p></div><div class="hero-deco">${A.pageDeco(71)}</div></section>
+app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebrow">Настольная версия</p><h1><span class="dim">Печатный</span> комплект</h1><p class="lead">Для каждой ситуации — двусторонние карточки ${L.WIDTH.toLocaleString('ru-RU')} × ${L.HEIGHT} мм, по ${L.PER} на листе A4 (2 × 4): исходная ситуация, 5–6 ролей, три закрытых обстоятельства, две карточки ведущего (ход игры и варианты решений), рефлексия, наблюдатель. Те же ситуации, роли и обстоятельства, что в онлайн-игре.</p></div><div class="hero-deco">${A.pageDeco(71)}</div></section>
 <section class="page-body"><div class="wrap">
  <div class="panel gate" id="printGate"><h2 style="font-size:28px">Доступ по коду автора</h2><p>Конструктор печати открывается кодом, который выдаёт автор игры. Код проверяется в браузере и нигде не сохраняется.</p>
   <form id="printUnlock" autocomplete="off"><label class="sr" for="printCode">Код доступа</label><input id="printCode" type="password" placeholder="Код доступа" required><button class="btn primary" id="printUnlockButton">Открыть</button></form><p class="status" id="printAccessStatus" role="status"></p>
@@ -29,7 +29,7 @@ app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebr
     <div class="grid two" style="gap:10px"><div class="field"><label for="printCopies">Экземпляров</label><input id="printCopies" type="number" min="1" max="10" value="1"></div><div class="field"><label for="printObs">Наблюдателей</label><input id="printObs" type="number" min="0" max="4" value="1"></div></div>
     <div class="grid two" style="gap:10px"><div class="field"><label for="printDx">Сдвиг оборота X, мм</label><input id="printDx" type="number" min="-3" max="3" step="0.5" value="0"></div><div class="field"><label for="printDy">Сдвиг Y, мм</label><input id="printDy" type="number" min="-3" max="3" step="0.5" value="0"></div></div>
     <label class="check"><input type="checkbox" id="printEco"> Экономная печать: без цветных заливок</label>
-    <p class="small muted" style="margin:0">Печатайте в масштабе 100 % («Фактический размер»). Сначала — пробный лист: номера на обороте должны совпасть с лицевой стороной на просвет. Если не совпали, задайте сдвиг. Рубашки цветные: если в окне печати есть пункт «Фоновые изображения» или «Печатать фон», включите его; для печати без заливок — «Экономная печать».</p>
+    <p class="small muted" style="margin:0">В настройках принтера выберите тот же край переворота, что и здесь. Печатайте в масштабе 100 % («Фактический размер») и отключите колонтитулы браузера. Сначала — пробный лист: номера на обороте должны совпасть с лицевой стороной на просвет. Если не совпали, задайте сдвиг. Рубашки цветные: если в окне печати есть пункт «Фоновые изображения» или «Печатать фон», включите его; для печати без заливок — «Экономная печать».</p>
     <button class="btn" type="button" id="printCalibration">Пробный лист</button>
     <button class="btn primary" type="button" id="printPrepare">Сформировать комплект</button>
     <button class="btn" type="button" id="printWorksheets">Листы ведущего A4</button>
@@ -39,13 +39,27 @@ app.innerHTML=`<section class="page-hero teal"><div class="wrap"><p class="eyebr
   <div class="pc-out" id="printOutput" aria-live="polite"></div></div>
 </div></section>`;
 
-function renderKits(){$('kitList').innerHTML=D.situations.map(c=>`<label><input type="checkbox" value="${c.id}"${selected.has(c.id)?' checked':''}><span><b>${c.id} · ${esc(c.title)}</b><small>${esc(c.theme)} · ${c.cast.length} ролей · ${L.kit(c,S).length/4} листа</small></span></label>`).join('');
+function renderKits(){$('kitList').innerHTML=D.situations.map(c=>`<label><input type="checkbox" value="${c.id}"${selected.has(c.id)?' checked':''}><span><b>${c.id} · ${esc(c.title)}</b><small>${esc(c.theme)} · ${c.cast.length} ролей · ${Math.ceil(L.kit(c,S).length/L.PER)} листа</small></span></label>`).join('');
   $('kitList').querySelectorAll('input').forEach(i=>i.onchange=()=>{i.checked?selected.add(i.value):selected.delete(i.value);clearOut();});}
 function clearOut(){$('printOutput').innerHTML='';$('printDo').disabled=true;$('printBuildStatus').textContent='';}
 function num(id,min,max){const n=Number($(id).value);if(!Number.isFinite(n)||n<min||n>max)throw Error(`Проверьте поле «${$(id).labels[0].textContent}»: от ${min} до ${max}.`);return n;}
 function opts(){return {edge:$('printEdge').value,side:$('printSide').value,dx:num('printDx',-3,3),dy:num('printDy',-3,3),eco:$('printEco').checked};}
 function zoom(){const w=$('printOutput').clientWidth||900;$('printOutput').style.setProperty('--preview-zoom',String(Math.min(1,Math.max(.3,(w-20)/794))));}
-function show(html,msg){$('printOutput').innerHTML=html;zoom();$('printDo').disabled=false;$('printBuildStatus').textContent=msg;$('printOutput').scrollIntoView({behavior:'smooth',block:'start'});}
+function show(html,msg){
+  const output=$('printOutput');
+  output.innerHTML=html;
+  const first=output.firstElementChild;
+  $('printDo').disabled=true;
+  $('printBuildStatus').textContent='Подготавливаем страницы…';
+  zoom();output.scrollIntoView({behavior:'smooth',block:'start'});
+  void output.offsetHeight;
+  document.fonts.ready.then(()=>{
+    if(output.firstElementChild!==first)return;
+    const overflow=L.fitCards(output);
+    $('printBuildStatus').textContent=overflow.length?'Часть текста не помещается. Обновите страницу после загрузки шрифтов.':msg;
+    $('printDo').disabled=overflow.length>0;
+  });
+}
 function lock(){unlocked=false;$('printBuilder').hidden=true;$('printGate').hidden=false;$('printCode').value='';clearOut();}
 
 $('printUnlock').onsubmit=async e=>{e.preventDefault();const b=$('printUnlockButton');b.disabled=true;$('printAccessStatus').textContent='Проверяем код…';
@@ -71,7 +85,7 @@ $('printPrepare').onclick=()=>{if(!unlocked)return;try{const o=opts(),copies=num
   show(L.sheetsHTML(cards,{...o,label:'ПЕДАГОГ'}),`Готово: ${cards.length} карточек, ${sheets} ${((n)=>{const a=n%100,b=n%10;return a>10&&a<20?'листов':b===1?'лист':b>1&&b<5?'листа':'листов';})(sheets)} A4${o.side==='both'?' с двух сторон':''}. Нажмите «Печать».`);}
   catch(e){$('printBuildStatus').textContent=e.message;}};
 $('printWorksheets').onclick=()=>{if(!unlocked)return;show(L.worksheetsHTML(S),'Листы ведущего: маршрут и регламент, раскладка комплекта, бланк решения — 3 страницы A4.');};
-$('printDo').onclick=()=>{if(unlocked&&$('printOutput').children.length)window.print();};
+$('printDo').onclick=()=>{if(unlocked&&!$('printDo').disabled)window.print();};
 addEventListener('resize',zoom);
 /* Для внутренней проверки вёрстки без кода: ?preview=1 работает только на локальном адресе. */
 if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)&&new URLSearchParams(location.search).has('preview')){unlocked=true;$('printBuilder').hidden=false;$('printGate').hidden=true;renderKits();}

@@ -1,12 +1,17 @@
 /* ПЕДАГОГ · раскладка печатного комплекта.
    Один модуль для конструктора на сайте (после ввода кода) и для сборки PDF (scripts/print-pdf.cjs),
    поэтому печать и онлайн-игра берут ситуации, роли и обстоятельства из одного реестра src/deck.js.
-   Карточка 99 × 140 мм, четыре на листе A4 (2 × 2, без зазоров — один рез на две кромки),
+   Карточки книжные, на A4 лежат боком в сетке 2 × 4 без зазоров (один рез на две кромки),
    оборот зеркалится по выбранному краю переворота. */
 (function(root){
 'use strict';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const COLS=2,ROWS=2,PER=COLS*ROWS;
+const COLS=2,ROWS=4,PER=COLS*ROWS;
+const WIDTH=69.3,HEIGHT=98;
+const LEFT=(210-COLS*HEIGHT)/2,TOP=(297-ROWS*WIDTH)/2;
+const mm=n=>`${Math.round(n*1000)/1000}mm`;
+const gridStyle=`--cols:${COLS};--rows:${ROWS};--card-w:${mm(WIDTH)};--card-h:${mm(HEIGHT)};--left:${mm(LEFT)};--top:${mm(TOP)}`;
+const grid=(cells,dx=0,dy=0)=>`<div class="pc-grid" style="${gridStyle};transform:translate(${dx}mm,${dy}mm)">${cells}</div>`;
 const SAFETY='Если в разговоре прозвучит реальная история об угрозе жизни или здоровью ребёнка, остановите игру, не расспрашивайте о подробностях при группе и действуйте по порядку, установленному в школе.';
 const ENTER=n=>n===0?'с начала':`с обстоятельством ${n}`;
 
@@ -45,10 +50,11 @@ function adviceFront(c){const a=c.advice;return `${head('advice','Рекомен
   <p class="pc-adv-h">Как лучше поступить?</p><ol class="pc-adv-list">${a.actions.map(x=>`<li>${esc(x)}</li>`).join('')}</ol>
   <p class="pc-adv-h avoid">Чего лучше избегать?</p><p class="pc-avoid">${esc(a.avoid)}</p></div>`;}
 function reflectFront(c){return `${head('reflect','Рефлексия',c.id,'#2A958E')}<div class="pc-body"><h2 class="pc-title sm">После выхода из ролей</h2><p class="pc-fine" style="margin-top:0">Назовите своё имя: «Я выхожу из роли». Отвечайте по желанию.</p><ol class="pc-qs">${c.debrief.map(q=>`<li>${esc(q)}</li>`).join('')}<li>Какое ваше первое впечатление о ситуации оказалось предположением?</li><li>Чья позиция изменила картину сильнее всего?</li></ol></div>`;}
-function reflectBack(c){return `${head('reflect','Рефлексия · мой шаг',c.id,'#2A958E')}<div class="pc-body"><h2 class="pc-title sm">Мой шаг в работе</h2><p class="pc-fine" style="margin-top:0">Один небольшой шаг, который я попробую. Делиться им не обязательно.</p><div class="pc-lines"></div><p class="pc-fine">По какому признаку пойму, что шаг нужно изменить?</p><div class="pc-lines short"></div></div>`;}
+function writingLines(short=false){return `<div class="pc-lines${short?' short':''}" aria-hidden="true">${'<i></i>'.repeat(short?3:18)}</div>`;}
+function reflectBack(c){return `${head('reflect','Рефлексия · мой шаг',c.id,'#2A958E')}<div class="pc-body"><h2 class="pc-title sm">Мой шаг в работе</h2><p class="pc-fine" style="margin-top:0">Один небольшой шаг, который я попробую. Делиться им не обязательно.</p>${writingLines()}<p class="pc-fine">По какому признаку пойму, что шаг нужно изменить?</p>${writingLines(true)}</div>`;}
 function observerFront(id){const O=data().observer;return `${head('observer','Наблюдатель',id,'#676C90')}<div class="pc-body"><div class="pc-rolehead"><span class="pc-badge lg" style="--c:#fff;--i:#3B4A99;box-shadow:inset 0 0 0 .5mm #C9CCEB">НБ</span><div><h2 class="pc-name">Наблюдатель</h2><p class="pc-kicker">Для участников без роли</p></div></div><p>${esc(O.text)}</p>
   <ul class="pc-checks"><li>Точная реплика, которая изменила разговор</li><li>Факт — отдельно от догадки</li><li>Как менялась картина после каждого обстоятельства</li><li>Один вопрос участникам</li></ul></div>`;}
-function notesFront(id){return `${head('notes','Заметки',id,'#C9CCEB')}<div class="pc-body"><h2 class="pc-title sm">Заметки</h2><p class="pc-fine" style="margin-top:0">Без имён реальных детей и коллег.</p><div class="pc-lines tall"></div></div>`;}
+function notesFront(id){return `${head('notes','Заметки',id,'#C9CCEB')}<div class="pc-body"><h2 class="pc-title sm">Заметки</h2><p class="pc-fine" style="margin-top:0">Без имён реальных детей и коллег.</p>${writingLines()}</div>`;}
 function resourceFront(r){return `${head('resource','Ресурс',r.id,'#2A958E')}<div class="pc-body center"><p class="pc-kicker">Инструмент для поиска решения</p><h2 class="pc-title">${esc(r.title)}</h2><p class="pc-big">${esc(r.text)}</p></div>`;}
 function refcardFront(r){return `${head('refcard','Вопрос рефлексии',r.id,'#6874C2')}<div class="pc-body center"><p class="pc-kicker">После выхода из ролей</p><h2 class="pc-title">${esc(r.title)}</h2><p class="pc-big">${esc(r.text)}</p></div>`;}
 
@@ -82,10 +88,15 @@ function kit(c,S,{observers=1}={}){const cards=[card('situation',c.id,situationF
   if(c.advice)cards.push(card('advice',c.id,adviceFront(c),brandBack('Рекомендации педагогу',c.id,'Открыть после проигрывания и обсуждения','#124B48',esc(c.title))));
   cards.push(card('reflect',c.id,reflectFront(c),reflectBack(c)));
   for(let i=0;i<observers;i++)cards.push(card('observer',c.id,observerFront(c.id),brandBack('Наблюдатель',c.id,'Точная реплика · факт и догадка · вопрос','#676C90','Для участника без роли')));
-  while(cards.length%PER)cards.push(card('notes',c.id,notesFront(c.id),brandBack('Заметки',c.id,'','#C9CCEB')));
-  return cards;}
+  return withNotes(cards,c.id,c.id);}
 function common(){const D=data();const cards=[...D.resources.map(r=>card('resource','Р',resourceFront(r),brandBack('Ресурс',r.id,'Инструмент для поиска решения','#2A958E',esc(r.title)))),...D.reflections.map(r=>card('refcard','М',refcardFront(r),brandBack('Вопрос рефлексии',r.id,'После выхода из ролей','#6874C2',esc(r.title))))];
-  while(cards.length%PER)cards.push(card('notes','—',notesFront('Общие'),brandBack('Заметки','Общие','','#C9CCEB')));return cards;}
+  return withNotes(cards,'—','Общие');}
+/* Сохраняем прежнее число карточек для заметок в каждом комплекте. */
+function withNotes(cards,caseId,label){
+  const notes=(4-cards.length%4)%4;
+  for(let i=0;i<notes;i++)cards.push(card('notes',caseId,notesFront(label),brandBack('Заметки',label,'','#C9CCEB')));
+  return cards;
+}
 
 /* ---------- Листы ---------- */
 /* Оборот: при перевороте по длинному краю (книжная A4) карточки зеркалятся по горизонтали, по короткому — по вертикали. */
@@ -93,11 +104,61 @@ function backIndex(i,edge){const x=i%COLS,y=Math.floor(i/COLS);return edge==='sh
 function plan(cards,{edge='long',side='both'}={}){const out=[];for(let s=0;s<cards.length;s+=PER){const a=cards.slice(s,s+PER);while(a.length<PER)a.push(null);
   const b=Array(PER).fill(null);a.forEach((c,i)=>{b[backIndex(i,edge)]=c;});const n=s/PER+1;
   if(side!=='back')out.push({cards:a,back:false,sheet:n});if(side!=='front')out.push({cards:b,back:true,sheet:n});}return out;}
-function marks(){const m=[];const xs=[6,105,204],ys=[8.5,148.5,288.5];xs.forEach(x=>{m.push(`<i class="cm v" style="left:${x}mm;top:0"></i><i class="cm v" style="left:${x}mm;bottom:0"></i>`);});ys.forEach(y=>{m.push(`<i class="cm h" style="top:${y}mm;left:0"></i><i class="cm h" style="top:${y}mm;right:0"></i>`);});return m.join('');}
+function marks(){
+  const m=[];
+  for(let i=0;i<=COLS;i++){
+    const x=mm(LEFT+i*HEIGHT);
+    m.push(`<i class="cm v" style="left:${x};top:5.5mm"></i><i class="cm v" style="left:${x};bottom:5.5mm"></i>`);
+  }
+  for(let i=0;i<=ROWS;i++){
+    const y=mm(TOP+i*WIDTH);
+    m.push(`<i class="cm h" style="top:${y};left:5mm"></i><i class="cm h" style="top:${y};right:5mm"></i>`);
+  }
+  return m.join('');
+}
 function sheetsHTML(cards,{edge='long',side='both',dx=0,dy=0,eco=false,label='Комплект'}={}){
-  return plan(cards,{edge,side}).map(p=>`<section class="pc-sheet${p.back?' is-back':''}${eco?' eco':''}" data-sheet="${p.sheet}" aria-label="Лист ${p.sheet}, ${p.back?'оборот':'лицевая сторона'}"><div class="pc-grid" style="${p.back?`transform:translate(${dx}mm,${dy}mm)`:''}">${p.cards.map(c=>`<article class="pc-card k-${c?c.kind:'empty'}">${c?(p.back?c.back:c.front):''}</article>`).join('')}</div>${marks()}<p class="pc-sheetnote">${esc(label)} · лист ${p.sheet} · ${p.back?'оборот':'лицевая'}</p></section>`).join('');}
-function calibrationHTML({edge='long',dx=0,dy=0}={}){const cells=(back)=>Array.from({length:PER},(_,i)=>{const n=back?backIndex(i,edge)+1:i+1;return `<article class="pc-card k-cal"><div class="pc-cal"><b>${n}</b><span>${back?'Оборот':'Лицевая'}</span><i></i></div></article>`;}).join('');
-  return `<section class="pc-sheet"><div class="pc-grid">${cells(false)}</div>${marks()}<p class="pc-sheetnote">Пробный лист · лицевая. Напечатайте в масштабе 100 % на двух сторонах.</p></section><section class="pc-sheet is-back"><div class="pc-grid" style="transform:translate(${dx}mm,${dy}mm)">${cells(true)}</div>${marks()}<p class="pc-sheetnote">Пробный лист · оборот. Номера должны совпасть с лицевой стороной на просвет.</p></section>`;}
+  return plan(cards,{edge,side}).map(p=>{
+    // Верх карточки смотрит в одну физическую сторону после переворота листа.
+    const reverse=p.back&&edge==='long'?' turn':'';
+    const cells=p.cards.map(c=>c?`<article class="pc-card k-${c.kind}"><div class="pc-face${reverse}">${p.back?c.back:c.front}</div></article>`:'<article class="pc-card k-empty"></article>').join('');
+    return `<section class="pc-sheet${p.back?' is-back':''}${eco?' eco':''}" data-sheet="${p.sheet}" aria-label="Лист ${p.sheet}, ${p.back?'оборот':'лицевая сторона'}">${grid(cells,p.back?dx:0,p.back?dy:0)}${marks()}<p class="pc-sheetnote">${esc(label)} · лист ${p.sheet} · ${p.back?'оборот':'лицевая'}</p></section>`;
+  }).join('');
+}
+function calibrationHTML({edge='long',dx=0,dy=0}={}){
+  const cells=back=>Array.from({length:PER},(_,i)=>{
+    const n=back?backIndex(i,edge)+1:i+1;
+    return `<article class="pc-card k-cal"><div class="pc-cal"><b>${n}</b><span>${back?'Оборот':'Лицевая'}</span><i></i></div></article>`;
+  }).join('');
+  return `<section class="pc-sheet">${grid(cells(false))}${marks()}<p class="pc-sheetnote">Пробный лист · лицевая. Напечатайте в масштабе 100 % на двух сторонах.</p></section><section class="pc-sheet is-back">${grid(cells(true),dx,dy)}${marks()}<p class="pc-sheetnote">Пробный лист · оборот. Номера должны совпасть с лицевой стороной на просвет.</p></section>`;
+}
+
+/* Подбор кегля выполняется после загрузки шрифтов, отдельно для каждой стороны. */
+function fitCards(container){
+  const contains=(outer,inner)=>inner.top>=outer.top-.5&&inner.left>=outer.left-.5&&inner.bottom<=outer.bottom+.5&&inner.right<=outer.right+.5;
+  const zones=face=>[...face.querySelectorAll('.pc-head,.pc-body,.pc-back-text')];
+  const fits=face=>zones(face).every(zone=>{
+    const bounds=zone.getBoundingClientRect();
+    return zone.scrollWidth<=zone.clientWidth+1&&zone.scrollHeight<=zone.clientHeight+1&&
+      [...zone.children].every(child=>contains(bounds,child.getBoundingClientRect()));
+  });
+  const faces=[...container.querySelectorAll('.pc-face')];
+  faces.forEach(face=>face.style.removeProperty('--type-scale'));
+  const dense=faces.filter(face=>!fits(face)).map(face=>({face,min:65,max:99,size:100}));
+  // Сначала выставляем размеры для всех карточек, затем измеряем результат.
+  while(dense.some(item=>item.min<=item.max)){
+    const pending=dense.filter(item=>item.min<=item.max);
+    pending.forEach(item=>{
+      item.size=Math.ceil((item.min+item.max)/2);
+      item.face.style.setProperty('--type-scale',item.size/100);
+    });
+    pending.forEach(item=>{
+      if(fits(item.face))item.min=item.size+1;
+      else item.max=item.size-1;
+    });
+  }
+  dense.forEach(({face,max})=>face.style.setProperty('--type-scale',Math.max(65,max)/100));
+  return dense.filter(({face})=>!fits(face)).map(({face})=>face);
+}
 
 /* ---------- Листы A4 для ведущего ---------- */
 function worksheetsHTML(S){const D=data();const cell=v=>v==null?'—':v;const keys=['start','positions','ev1','ev2','ev3','ev23','solution','reflect','break','summary'];
@@ -116,6 +177,6 @@ function worksheetsHTML(S){const D=data();const cell=v=>v==null?'—':v;const ke
   +page('Бланк решения',`<p>Ситуация: ______________________________ Команда: ________ Дата: __________</p>${['Первые позиции: какой виделась ситуация','Обстоятельство 1: что изменилось','Обстоятельство 2: что подтвердилось, что пересмотрели','Обстоятельство 3: какой стала картина'].map(t=>`<h3>${t}</h3><div class="pc-wl" style="height:20mm"></div>`).join('')}
    <h3>Решение</h3><table class="pc-table form"><tr><td>Что делаем</td><td></td></tr><tr><td>Кто</td><td></td></tr><tr><td>Срок</td><td></td></tr><tr><td>Как поймём, что получилось</td><td></td></tr><tr><td>Несогласие (если есть)</td><td></td></tr></table>`,'Записи без имён и узнаваемых подробностей. В общий итог попадает только то, с чем согласна группа.');}
 
-root.PEDAGOG_PRINT_LAYOUT={PER,SAFETY,backIndex,plan,kit,common,sheetsHTML,calibrationHTML,worksheetsHTML,castOrder};
+root.PEDAGOG_PRINT_LAYOUT={PER,WIDTH,HEIGHT,SAFETY,backIndex,plan,kit,common,sheetsHTML,calibrationHTML,fitCards,worksheetsHTML,castOrder};
 if(typeof module!=='undefined'&&module.exports)module.exports=root.PEDAGOG_PRINT_LAYOUT;
 })(globalThis);
